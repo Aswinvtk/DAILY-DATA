@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Doughnut } from 'react-chartjs-2';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
 import { Box, Layers, ShieldCheck, Database, Calendar } from 'lucide-react';
@@ -12,9 +12,27 @@ const RotationSection = ({
   onSelectProduct,
   theme
 }) => {
+  const [displayIndex, setDisplayIndex] = useState(currentIndex);
+  const [animationClass, setAnimationClass] = useState('');
+
+  useEffect(() => {
+    if (currentIndex !== displayIndex) {
+      setAnimationClass('fade-out-slide');
+      const timer = setTimeout(() => {
+        setDisplayIndex(currentIndex);
+        setAnimationClass('fade-in-slide');
+        const clearTimer = setTimeout(() => {
+          setAnimationClass('');
+        }, 250);
+        return () => clearTimeout(clearTimer);
+      }, 250);
+      return () => clearTimeout(timer);
+    }
+  }, [currentIndex, displayIndex]);
+
   if (!products || products.length === 0) return null;
 
-  const currentProduct = products[currentIndex];
+  const currentProduct = products[displayIndex];
   const isDark = theme === 'dark';
 
   // Variant breakdown colors matching the mockup
@@ -72,6 +90,8 @@ const RotationSection = ({
     }
   };
 
+  const nextProduct = products[(displayIndex + 1) % products.length];
+
   return (
     <div className="section-rotation flex-grow-1">
       {/* 1. Header label for Section 2 */}
@@ -83,35 +103,47 @@ const RotationSection = ({
       <div className="rotation-container flex-grow-1">
         
         {/* Card A: Current Product & Countdown */}
-        <div className="rotation-product-card">
-          <div className="text-muted text-uppercase fw-bold mb-1" style={{ fontSize: '0.7rem', letterSpacing: '1px' }}>
-            CURRENT PRODUCT
-          </div>
-          <div className="rotation-product-title text-primary fw-bolder">
-            {currentProduct.productName}
-          </div>
-          
-          <div className="mt-2 text-center">
-            <div className="text-muted text-uppercase" style={{ fontSize: '0.62rem', fontWeight: 700 }}>Total Stock</div>
-            <div className="fw-bold font-monospace" style={{ fontSize: '1.9rem', color: 'var(--text-color)', fontFamily: 'var(--font-digital)' }}>
-              {totalStock.toLocaleString()} <span style={{ fontSize: '0.9rem', fontWeight: 500 }}>Kg</span>
+        <div className="d-flex flex-column h-100 align-items-center">
+          <div className={`rotation-product-card w-100 flex-grow-1 mb-2 ${animationClass}`} style={{ height: 'auto' }}>
+            <div className="text-muted text-uppercase fw-bold mb-1" style={{ fontSize: '0.7rem', letterSpacing: '1px' }}>
+              CURRENT PRODUCT
+            </div>
+            <div className="rotation-product-title text-primary fw-bolder">
+              {currentProduct.productName}
+            </div>
+            
+            <div className="mt-2 text-center">
+              <div className="text-muted text-uppercase" style={{ fontSize: '0.62rem', fontWeight: 700 }}>Total Stock</div>
+              <div className="fw-bold font-monospace" style={{ fontSize: '1.9rem', color: 'var(--text-color)', fontFamily: 'var(--font-digital)' }}>
+                {totalStock.toLocaleString()} <span style={{ fontSize: '0.9rem', fontWeight: 500 }}>Kg</span>
+              </div>
             </div>
           </div>
 
-          <div className="rotation-countdown">
-            <span>NEXT CHANGE IN</span>
-            <span className="countdown-number">{countdown}</span>
-            <span>SEC</span>
+          {/* Product Rotation Indicator */}
+          <div className="rotation-countdown mb-1 d-flex flex-column align-items-center gap-1 text-center" style={{ minWidth: '100%' }}>
+            <div className="d-flex align-items-center justify-content-center gap-1 opacity-75 fw-bold" style={{ fontSize: '0.65rem', letterSpacing: '0.5px' }}>
+              <span>CURRENT:</span>
+              <span className="text-primary font-monospace">{currentProduct.productName}</span>
+              <span className="mx-1 text-muted">|</span>
+              <span>NEXT:</span>
+              <span className="text-success font-monospace">{nextProduct.productName}</span>
+            </div>
+            <div className="d-flex align-items-center justify-content-center gap-1" style={{ fontSize: '0.62rem', fontWeight: 600 }}>
+              <span>CHANGING IN</span>
+              <span className="countdown-number">{countdown}</span>
+              <span>SEC</span>
+            </div>
           </div>
         </div>
 
         {/* Card B: Variant Stock Doughnut Chart */}
-        <div className="rotation-chart-container">
+        <div className={`rotation-chart-container ${animationClass}`}>
           <Doughnut data={chartData} options={chartOptions} />
         </div>
 
         {/* Card C: Variant Wise Stock Table */}
-        <div className="stock-table-card">
+        <div className={`stock-table-card ${animationClass}`}>
           <div className="stock-table-title">Variant Wise Stock</div>
           <div className="table-responsive" style={{ maxHeight: '100%' }}>
             <table className="custom-table">
