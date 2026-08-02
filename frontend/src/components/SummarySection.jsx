@@ -117,7 +117,7 @@ const SummarySection = ({ data, theme }) => {
 
   return (
     <div className="section-summary">
-      
+
       {/* 1. Total Collection Card */}
       <div className="industrial-card card-collection">
         <div className="card-title-text d-flex justify-content-between align-items-center w-100 mb-2">
@@ -129,7 +129,7 @@ const SummarySection = ({ data, theme }) => {
 
         {/* Top metrics (large size) wrapped in rounded rectangles */}
         <div className="d-flex justify-content-between align-items-center mb-2 gap-2 px-1">
-          <div className="flex-grow-1 p-2 rounded" style={{ 
+          <div className="flex-grow-1 p-2 rounded" style={{
             background: isDark ? 'rgba(255, 255, 255, 0.03)' : 'rgba(0, 0, 0, 0.02)',
             border: isDark ? '1px solid rgba(255, 255, 255, 0.06)' : '1px solid rgba(0, 0, 0, 0.05)',
             borderRadius: '6px'
@@ -137,8 +137,8 @@ const SummarySection = ({ data, theme }) => {
             <div className="text-muted text-uppercase" style={{ fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.3px' }}>Total Collection</div>
             <AnimatedValue value={totalCollection} unit="Ltr" className="value-display" style={{ fontSize: '1.9rem', margin: '4px 0 0 0' }} />
           </div>
-          
-          <div className="flex-grow-1 p-2 rounded text-end" style={{ 
+
+          <div className="flex-grow-1 p-2 rounded text-end" style={{
             background: isDark ? 'rgba(255, 255, 255, 0.03)' : 'rgba(0, 0, 0, 0.02)',
             border: isDark ? '1px solid rgba(255, 255, 255, 0.06)' : '1px solid rgba(0, 0, 0, 0.05)',
             borderRadius: '6px'
@@ -147,26 +147,26 @@ const SummarySection = ({ data, theme }) => {
             <AnimatedValue value={milkReceived.total} unit="Ltr" className="value-display" style={{ color: 'var(--color-received)', fontSize: '1.9rem', margin: '4px 0 0 0' }} />
           </div>
         </div>
-        
+
         <div className="collection-card-body mt-1">
           {/* Doughnut Chart */}
           <div className="collection-chart-container" style={{ flex: '1 1 50%', width: '50%', height: '145px', minHeight: '145px', maxHeight: '145px' }}>
             <Doughnut data={collectionChartData} options={chartOptions} />
-            <div 
-              className="position-absolute text-center" 
+            <div
+              className="position-absolute text-center"
               style={{ top: '50%', left: '50%', transform: 'translate(-50%, -50%)', pointerEvents: 'none' }}
             >
               <div className="text-muted" style={{ fontSize: '0.62rem', fontWeight: 600, textTransform: 'uppercase', lineHeight: 1 }}>
                 WYD : MDY
               </div>
               <div className="fw-bold" style={{ fontSize: '0.8rem', color: 'var(--text-color)', lineHeight: 1.15 }}>
-                {totalCollection > 0 
+                {totalCollection > 0
                   ? `${((collectionData.wyd / totalCollection) * 100).toFixed(0)}%:${((collectionData.mvd / totalCollection) * 100).toFixed(0)}%`
                   : '0%:0%'}
               </div>
             </div>
           </div>
-          
+
           {/* Collection Details */}
           <div className="collection-details" style={{ flex: '1 1 50%', gap: '14px', overflow: 'visible', display: 'flex', flexDirection: 'column', justifyContent: 'center', paddingLeft: '1rem' }}>
             <div className="d-flex align-items-start">
@@ -181,7 +181,7 @@ const SummarySection = ({ data, theme }) => {
                 </div>
               </div>
             </div>
-            
+
             <div className="d-flex align-items-start">
               <span className="category-dot mt-1" style={{ backgroundColor: isDark ? '#14B8A6' : '#0D9488', width: '7px', height: '7px', marginRight: '6px', borderRadius: '50%', flexShrink: 0 }} />
               <div className="d-flex flex-column" style={{ lineHeight: 1.25 }}>
@@ -196,9 +196,9 @@ const SummarySection = ({ data, theme }) => {
             </div>
           </div>
         </div>
-        
-        <div 
-          className="text-center rounded mt-2 py-1" 
+
+        <div
+          className="text-center rounded mt-2 py-1"
           style={{ background: 'rgba(40,167,69,0.08)', fontSize: '0.68rem', fontWeight: 600, color: 'var(--color-collection)' }}
         >
           Total Collection = WYD + Mananthavady
@@ -211,12 +211,12 @@ const SummarySection = ({ data, theme }) => {
           <ShoppingCart size={15} style={{ color: 'var(--color-sale)' }} />
           MILK NET SALE
         </div>
-        <div>
-          <div className="text-muted text-uppercase" style={{ fontSize: '0.65rem', fontWeight: 700 }}>Total Sale (Ltr)</div>
-          <AnimatedValue value={milkSale.total} unit="Ltr" className="value-display" />
+        <div className="text-muted text-uppercase fw-bold mb-1" style={{ fontSize: '0.7rem', letterSpacing: '1px' }}>
+          Total Milk Sale in ltr.
         </div>
-        <div className="border-top border-opacity-10 pt-1">
-          <div className="text-muted text-uppercase font-weight-bold" style={{ fontSize: '0.6rem', letterSpacing: '0.5px' }}>Category Wise</div>
+        <AnimatedValue value={milkSale.total} unit="Ltr" className="value-display mt-0 mb-2" style={{ fontSize: '2.5rem' }} />
+        <div className="border-top border-opacity-10 pt-2 flex-grow-1">
+          <div className="text-muted text-uppercase font-weight-bold" style={{ fontSize: '0.6rem', letterSpacing: '0.5px', marginBottom: '10px' }}>Category Wise</div>
           {renderCategoriesTable(milkSale.categories, 'Ltr')}
         </div>
       </div>
@@ -227,12 +227,12 @@ const SummarySection = ({ data, theme }) => {
           <CupSoda size={15} style={{ color: 'var(--color-curd)' }} />
           CURD SALE
         </div>
-        <div>
-          <div className="text-muted text-uppercase" style={{ fontSize: '0.65rem', fontWeight: 700 }}>Total Curd Sale (Kg)</div>
-          <AnimatedValue value={curdSale.total} unit="Kg" className="value-display" />
+        <div className="text-muted text-uppercase fw-bold mb-1" style={{ fontSize: '0.7rem', letterSpacing: '1px' }}>
+          Total Curd  Sale in kg.
         </div>
-        <div className="border-top border-opacity-10 pt-1">
-          <div className="text-muted text-uppercase font-weight-bold" style={{ fontSize: '0.6rem', letterSpacing: '0.5px' }}>Category Wise</div>
+        <AnimatedValue value={curdSale.total} unit="Kg" className="value-display mt-0 mb-2" style={{ fontSize: '2.5rem' }} />
+        <div className="border-top border-opacity-10 pt-2 flex-grow-1">
+          <div className="text-muted text-uppercase font-weight-bold" style={{ fontSize: '0.6rem', letterSpacing: '0.5px', marginBottom: '4px' }}>Category Wise</div>
           {renderCategoriesTable(curdSale.categories, 'Kg')}
         </div>
       </div>
@@ -243,20 +243,18 @@ const SummarySection = ({ data, theme }) => {
           <ClipboardList size={15} style={{ color: 'var(--color-purchase)' }} />
           PURCHASE (WAYANAD DAIRY)
         </div>
-        <div className="d-flex flex-column justify-content-between flex-grow-1">
-          <div>
-            <div className="text-muted text-uppercase" style={{ fontSize: '0.65rem', fontWeight: 700 }}>Total Purchase (Ltr)</div>
-            {purchase.quantity > 0 ? (
-              <AnimatedValue value={purchase.quantity} unit="Ltr" className="value-display" />
-            ) : (
-              <div className="fw-bold font-monospace text-muted mt-2" style={{ fontSize: '1.25rem' }}>
-                No Purchase Today
-              </div>
-            )}
-          </div>
-          <div 
-            className="text-center rounded py-2 border text-uppercase" 
-            style={{ 
+        <div className="text-muted text-uppercase fw-bold mb-1" style={{ fontSize: '0.7rem', letterSpacing: '1px' }}>
+          Total Purchase in ltr.
+        </div>
+        {purchase.quantity > 0 ? (
+          <AnimatedValue value={purchase.quantity} unit="Ltr" className="value-display mt-0 mb-2" style={{ fontSize: '2.5rem' }} />
+        ) : (
+          <div className="value-display mt-0 mb-2 text-muted" style={{ fontSize: '1.7rem', fontFamily: 'var(--font-digital)' }}>No Purchase</div>
+        )}
+        <div className="border-top border-opacity-10 pt-2 flex-grow-1 d-flex flex-column justify-content-end">
+          <div
+            className="text-center rounded py-2 border text-uppercase"
+            style={{
               background: 'rgba(111, 66, 193, 0.06)',
               borderColor: 'var(--border-color)',
               fontSize: '0.72rem',
@@ -275,25 +273,22 @@ const SummarySection = ({ data, theme }) => {
           <Database size={15} style={{ color: 'var(--color-stock-highlight)' }} />
           Milk Closing Stock
         </div>
-        <div className="d-flex flex-column justify-content-between flex-grow-1">
-          <div>
-            <div className="text-muted text-uppercase" style={{ fontSize: '0.65rem', fontWeight: 700 }}>Total Stock (Ltr)</div>
-            <AnimatedValue value={milkClosingStock || 0} unit="Ltr" className="value-display" />
+        <div className="text-muted text-uppercase fw-bold mb-1" style={{ fontSize: '0.7rem', letterSpacing: '1px' }}>
+          Total Milk Closing Stock in ltr.
+        </div>
+        <AnimatedValue value={milkClosingStock || 0} unit="Ltr" className="value-display mt-0 mb-2" style={{ fontSize: '2.5rem' }} />
+        <div className="border-top border-opacity-10 pt-2 flex-grow-1">
+          <div className="d-flex justify-content-between align-items-center mb-1">
+            <span className="text-muted text-uppercase" style={{ fontSize: '0.62rem', fontWeight: 700 }}>Yesterday</span>
+            <span className="fw-bold font-monospace" style={{ fontSize: '0.8rem', color: 'var(--text-color)' }}>
+              {(yesterdayClosingStock || 0).toLocaleString()} Ltr
+            </span>
           </div>
-          
-          <div className="border-top border-opacity-10 pt-2 mt-1">
-            <div className="d-flex justify-content-between align-items-center mb-1">
-              <span className="text-muted text-uppercase" style={{ fontSize: '0.62rem', fontWeight: 700 }}>Yesterday</span>
-              <span className="fw-bold font-monospace" style={{ fontSize: '0.8rem', color: 'var(--text-color)' }}>
-                {(yesterdayClosingStock || 0).toLocaleString()} Ltr
-              </span>
-            </div>
-            <div className="d-flex justify-content-between align-items-center">
-              <span className="text-muted text-uppercase" style={{ fontSize: '0.62rem', fontWeight: 700 }}>Difference</span>
-              <span className="fw-bold font-monospace" style={{ fontSize: '0.82rem', color: diffColor }}>
-                {diffSign}{closingStockDiff.toLocaleString()} Ltr
-              </span>
-            </div>
+          <div className="d-flex justify-content-between align-items-center">
+            <span className="text-muted text-uppercase" style={{ fontSize: '0.62rem', fontWeight: 700 }}>Difference</span>
+            <span className="fw-bold font-monospace" style={{ fontSize: '0.82rem', color: diffColor }}>
+              {diffSign}{closingStockDiff.toLocaleString()} Ltr
+            </span>
           </div>
         </div>
       </div>

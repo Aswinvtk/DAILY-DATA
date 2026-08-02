@@ -1,35 +1,5 @@
 import React from 'react';
 import { Calendar, Clock, Tv, Sun, Moon, RefreshCw, Edit2 } from 'lucide-react';
-
-const MilmaLogoSvg = () => (
-  <svg viewBox="0 0 200 120" className="milma-logo" style={{ width: '80px', height: 'auto' }}>
-    {/* Oval background */}
-    <ellipse cx="100" cy="45" rx="55" ry="32" fill="#004b87" stroke="#ffffff" strokeWidth="3" />
-    
-    {/* Horns & Head emblem */}
-    <path 
-      d="M 68 30 C 75 15, 90 20, 100 35 C 110 20, 125 15, 132 30 C 120 40, 110 38, 100 48 C 90 38, 80 40, 68 30 Z" 
-      fill="#ffffff" 
-    />
-    <circle cx="100" cy="56" r="6" fill="#ffffff" />
-    <path d="M 94 56 L 100 68 L 106 56 Z" fill="#ffffff" />
-    
-    {/* Milma Text below */}
-    <text 
-      x="100" 
-      y="105" 
-      fill="#ffffff" 
-      fontSize="24" 
-      fontWeight="900" 
-      fontFamily="'Inter', sans-serif" 
-      textAnchor="middle"
-      letterSpacing="1"
-    >
-      milma
-    </text>
-  </svg>
-);
-
 const Header = ({
   selectedDate,
   onDateChange,
@@ -39,7 +9,8 @@ const Header = ({
   onManualRefresh,
   onOpenDataEntry,
   isLive,
-  currentTime
+  currentDateStr,
+  liveTimeStr
 }) => {
   // Format selectedDate for display
   const formatDateDisplay = (dateStr) => {
@@ -47,30 +18,47 @@ const Header = ({
       const date = new Date(dateStr);
       const options = { day: '2-digit', month: 'short', year: 'numeric' };
       const formatted = date.toLocaleDateString('en-GB', options).replace(/ /g, '-');
-      const weekday = date.toLocaleDateString('en-US', { weekday: 'long' });
-      return { dateStr: formatted, weekday };
+      return formatted;
     } catch {
-      return { dateStr: dateStr, weekday: '' };
+      return dateStr;
     }
   };
 
-  const { dateStr: displayDate, weekday } = formatDateDisplay(selectedDate);
+  const displayDate = formatDateDisplay(selectedDate);
 
-  // Toggle fullscreen mode
-  const toggleFullscreen = () => {
-    if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen().catch((err) => {
-        console.error(`Error attempting to enable fullscreen: ${err.message}`);
-      });
+  // Toggle fullscreen mode for TV & desktop browsers
+  const toggleFullscreen = (e) => {
+    if (e && e.preventDefault) e.preventDefault();
+    const doc = document.documentElement;
+    const isFull = document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement || document.mozFullScreenElement;
+    
+    if (!isFull) {
+      if (doc.requestFullscreen) {
+        doc.requestFullscreen().catch((err) => console.log(err));
+      } else if (doc.webkitRequestFullscreen) {
+        doc.webkitRequestFullscreen();
+      } else if (doc.msRequestFullscreen) {
+        doc.msRequestFullscreen();
+      } else if (doc.mozRequestFullScreen) {
+        doc.mozRequestFullScreen();
+      }
     } else {
-      document.exitFullscreen();
+      if (document.exitFullscreen) {
+        document.exitFullscreen().catch((err) => console.log(err));
+      } else if (document.webkitExitFullscreen) {
+        document.webkitExitFullscreen();
+      } else if (document.msExitFullscreen) {
+        document.msExitFullscreen();
+      } else if (document.mozCancelFullScreen) {
+        document.mozCancelFullScreen();
+      }
     }
   };
 
   return (
     <header className="dashboard-header d-flex align-items-center justify-content-between">
       <div className="dashboard-title-area">
-        <MilmaLogoSvg />
+        <img src="/logo.png" alt="Milma Logo" className="milma-logo" />
         <div className="dashboard-title-text border-start border-white border-opacity-25 ps-3 ms-2">
           <h1>MILMA WAYANAD DAIRY</h1>
           <p>Daily Operations Dashboard</p>
@@ -78,34 +66,46 @@ const Header = ({
       </div>
 
       <div className="d-flex align-items-center gap-4">
-        {/* Date Selector Display */}
-        <div className="d-flex align-items-center text-end text-white">
-          <div className="me-2">
-            <div className="fw-bold" style={{ fontSize: '0.9rem' }}>{displayDate}</div>
-            <div className="opacity-75" style={{ fontSize: '0.7rem' }}>{weekday}</div>
+        {/* Date Selector Display: Report Date & Last Updated */}
+        <div className="d-flex align-items-center text-white">
+          <div className="text-end me-2" style={{ lineHeight: 1.35 }}>
+            <div style={{ fontSize: '0.78rem' }}>
+              <span className="opacity-75">Report Date : </span>
+              <span className="fw-bold text-warning">{displayDate}</span>
+            </div>
+            <div style={{ fontSize: '0.7rem' }}>
+              <span className="opacity-75">Last Updated : </span>
+              <span className="fw-semibold">{lastUpdated}</span>
+            </div>
           </div>
-          <div className="position-relative bg-white bg-opacity-10 p-2 rounded cursor-pointer hover-bg-opacity-20">
-            <Calendar size={18} />
+          <div 
+            className="position-relative bg-white bg-opacity-10 p-2 rounded cursor-pointer hover-bg-opacity-20 d-flex align-items-center justify-content-center" 
+            style={{ width: '36px', height: '36px' }}
+            title="Select date to view corresponding data"
+          >
+            <Calendar size={18} className="text-warning" />
             <input
               type="date"
               value={selectedDate}
               onChange={(e) => onDateChange(e.target.value)}
               className="position-absolute top-0 start-0 w-100 h-100 opacity-0 cursor-pointer"
-              style={{ minWidth: '35px' }}
             />
           </div>
         </div>
 
-        {/* Live Clock Display */}
-        <div className="d-flex align-items-center text-white border-start border-white border-opacity-25 ps-4">
-          <Clock className="me-2 text-warning" size={20} />
-          <div>
-            <div className="fw-bold" style={{ fontSize: '1rem', fontFamily: 'var(--font-digital)' }}>
-              {currentTime}
-            </div>
-            <div className="opacity-75" style={{ fontSize: '0.7rem' }}>
-              Last Updated: {lastUpdated}
-            </div>
+        {/* Live Current Date & Time Display - Highly Visible 2-Line Clock */}
+        <div 
+          className="d-flex align-items-center text-white border-start border-white border-opacity-25 ps-4 px-3 py-1 rounded" 
+          style={{ background: 'rgba(255, 255, 255, 0.08)', border: '1px solid rgba(255, 255, 255, 0.15)' }}
+        >
+          <Clock className="me-2 text-warning" size={24} />
+          <div className="d-flex flex-column justify-content-center" style={{ lineHeight: 1.2 }}>
+            <span style={{ fontSize: '0.82rem', fontWeight: 600, color: '#e2e8f0', letterSpacing: '0.5px' }}>
+              {currentDateStr}
+            </span>
+            <span className="fw-bold" style={{ fontSize: '1.25rem', color: '#38bdf8', letterSpacing: '1px', fontFamily: 'var(--font-sans)' }}>
+              {liveTimeStr}
+            </span>
           </div>
         </div>
 
@@ -118,7 +118,7 @@ const Header = ({
           </div>
 
           {/* Data Entry Panel Button */}
-          <button 
+          <button
             onClick={onOpenDataEntry}
             className="btn btn-sm btn-outline-warning d-flex align-items-center gap-1 fw-bold px-3"
             title="Open Data Entry Control Panel"
@@ -139,6 +139,7 @@ const Header = ({
           {/* Fullscreen Mode */}
           <button
             onClick={toggleFullscreen}
+            onTouchEnd={toggleFullscreen}
             className="btn btn-sm btn-outline-light p-2"
             title="Toggle TV Fullscreen Mode"
           >

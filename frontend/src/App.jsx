@@ -7,17 +7,24 @@ import ReportEntry from './components/ReportEntry';
 
 const API_BASE = 'http://localhost:5000/api';
 
+const getYesterdayDateStr = () => {
+  const d = new Date();
+  d.setDate(d.getDate() - 1);
+  return d.toISOString().split('T')[0];
+};
+
 function App() {
-  const [selectedDate, setSelectedDate] = useState('2026-04-28');
+  const [selectedDate, setSelectedDate] = useState(getYesterdayDateStr);
   const [operationsData, setOperationsData] = useState(null);
   const [theme, setTheme] = useState(() => localStorage.getItem('mpod_theme') || 'dark');
   const [rotatingIndex, setRotatingIndex] = useState(2); // Start on BUTTER (index 2) as in mockup
   const [rotationCountdown, setRotationCountdown] = useState(20);
   const [refreshCountdown, setRefreshCountdown] = useState(30);
-  const [currentTime, setCurrentTime] = useState('');
+  const [currentDateStr, setCurrentDateStr] = useState('');
+  const [liveTimeStr, setLiveTimeStr] = useState('');
   const [lastUpdated, setLastUpdated] = useState('--:-- AM');
   const [loading, setLoading] = useState(true);
-  
+
   // V2 Navigation View state: 'dashboard' or 'report_entry'
   const [view, setView] = useState('dashboard');
 
@@ -37,7 +44,7 @@ function App() {
     }
   }, [view]);
 
-  // Live Clock effect
+  // Live Clock effect - Exact day, date and ticking time
   useEffect(() => {
     const updateTime = () => {
       const now = new Date();
@@ -48,7 +55,16 @@ function App() {
       hours = hours % 12;
       hours = hours ? hours : 12; // 0 should be 12
       const formattedHours = String(hours).padStart(2, '0');
-      setCurrentTime(`${formattedHours}:${minutes}:${seconds} ${ampm}`);
+
+      const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const dayName = weekdays[now.getDay()];
+      const dayNum = String(now.getDate()).padStart(2, '0');
+      const monthName = months[now.getMonth()];
+      const year = now.getFullYear();
+
+      setCurrentDateStr(`${dayName}, ${dayNum}-${monthName}-${year}`);
+      setLiveTimeStr(`${formattedHours}:${minutes}:${seconds} ${ampm}`);
     };
     updateTime();
     const interval = setInterval(updateTime, 1000);
@@ -63,7 +79,7 @@ function App() {
       if (!res.ok) throw new Error('API request failed');
       const data = await res.json();
       setOperationsData(data);
-      
+
       const now = new Date();
       let hours = now.getHours();
       const minutes = String(now.getMinutes()).padStart(2, '0');
@@ -131,7 +147,7 @@ function App() {
       const savedData = await res.json();
       setOperationsData(savedData);
       setSelectedDate(updatedData.date); // Sync date picker
-      
+
       const now = new Date();
       let hours = now.getHours();
       const minutes = String(now.getMinutes()).padStart(2, '0');
@@ -167,6 +183,41 @@ function App() {
   // Check if report status is Draft (to show warning banners)
   const isDraftStatus = operationsData?.status === 'Draft';
 
+  const handleUpdateAlerts = async (newAlerts) => {
+    // Refresh Last Updated timestamp
+    const now = new Date();
+    let hours = now.getHours();
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12;
+    hours = hours ? hours : 12;
+    const formattedTime = `${String(hours).padStart(2, '0')}:${minutes} ${ampm}`;
+    setLastUpdated(formattedTime);
+
+    setOperationsData(prev => prev ? { ...prev, alerts: newAlerts } : prev);
+
+    if (operationsData) {
+      try {
+        const payload = {
+          ...operationsData,
+          date: selectedDate,
+          alerts: newAlerts
+        };
+        const res = await fetch(`${API_BASE}/operations`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (res.ok) {
+          const updatedDoc = await res.json();
+          setOperationsData(updatedDoc);
+        }
+      } catch (e) {
+        console.error('Error updating alerts:', e);
+      }
+    }
+  };
+
   return (
     <div className="d-flex flex-column h-100">
       <Header
@@ -178,18 +229,17 @@ function App() {
         onManualRefresh={() => fetchData(selectedDate)}
         onOpenDataEntry={() => setView(view === 'dashboard' ? 'report_entry' : 'dashboard')}
         isLive={isLive}
-        currentTime={currentTime}
+        currentDateStr={currentDateStr}
+        liveTimeStr={liveTimeStr}
       />
 
       {view === 'dashboard' ? (
         // DASHBOARD VIEW
         <>
+          {/* Status Alert Bar if report is in Draft status */}
           {isDraftStatus && (
-            <div 
-              className="alert alert-warning py-2 text-center mb-0 border-0 rounded-0 d-flex align-items-center justify-content-center gap-2"
-              style={{ fontSize: '0.8rem', fontWeight: 'bold' }}
-            >
-              <span>⚠️ Operational report for {selectedDate} is in DRAFT status. Dashboard is displaying preview draft figures.</span>
+            <div className="bg-warning text-dark text-center py-1 px-3 fw-bold small d-flex align-items-center justify-content-center gap-2">
+              <span>⚠️ Draft Report for {selectedDate} — Data has not been finalized!</span>
               <button onClick={() => setView('report_entry')} className="btn btn-sm btn-link py-0 fw-bold text-dark text-decoration-underline">
                 Edit & Submit Report
               </button>
@@ -205,9 +255,9 @@ function App() {
               </div>
             ) : (
               <>
-                <SummarySection 
-                  data={operationsData} 
-                  theme={theme} 
+                <SummarySection
+                  data={operationsData}
+                  theme={theme}
                 />
                 <RotationSection
                   products={operationsData?.products}
@@ -224,6 +274,7 @@ function App() {
             alerts={operationsData?.alerts}
             onRefresh={() => fetchData(selectedDate)}
             nextRefreshIn={refreshCountdown}
+            onUpdateAlerts={handleUpdateAlerts}
           />
         </>
       ) : (
