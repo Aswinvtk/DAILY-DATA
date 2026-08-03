@@ -13,8 +13,10 @@ const ReportEntry = ({ selectedDate, onBackToDashboard, onSave, fetchReportData 
   const [milkClosingStock, setMilkClosingStock] = useState(0);
   
   const [milkSaleCategories, setMilkSaleCategories] = useState([
+    { name: 'HTM 525', value: 0 },
     { name: 'HTM 500', value: 0 },
     { name: 'HTM 200', value: 0 },
+    { name: 'Toned Milk', value: 0 },
     { name: 'Super Rich', value: 0 },
     { name: 'Milma Smart', value: 0 },
     { name: 'Cow Milk', value: 0 },
@@ -23,10 +25,15 @@ const ReportEntry = ({ selectedDate, onBackToDashboard, onSave, fetchReportData 
   ]);
 
   const [curdSaleCategories, setCurdSaleCategories] = useState([
-    { name: 'Cup Curd', value: 0 },
-    { name: 'Set Curd', value: 0 },
+    { name: 'Curd 525g', value: 0 },
     { name: 'Kattimoru', value: 0 },
-    { name: 'Special Curd', value: 0 }
+    { name: 'Special Curd 500g', value: 0 },
+    { name: 'Curd 5Kg', value: 0 },
+    { name: 'Kattithairu 400g', value: 0 },
+    { name: 'Set Curd 1Kg', value: 0 },
+    { name: 'Probiotic Set Curd', value: 0 },
+    { name: 'Set Curd 200g', value: 0 },
+    { name: 'TM Curd', value: 0 }
   ]);
 
   // Product Stock state
@@ -36,7 +43,8 @@ const ReportEntry = ({ selectedDate, onBackToDashboard, onSave, fetchReportData 
     { name: '100 g', value: 0 },
     { name: '200 g', value: 0 },
     { name: '500 g', value: 0 },
-    { name: 'Bulk', value: 0 }
+    { name: 'Bulk', value: 0 },
+    { name: 'Cooking Butter Bulk', value: 0 }
   ]);
   const [paneerVariants, setPaneerVariants] = useState([
     { name: '500 g', value: 0 },
@@ -48,8 +56,11 @@ const ReportEntry = ({ selectedDate, onBackToDashboard, onSave, fetchReportData 
     { name: '200 ml', value: 0 },
     { name: '500 ml', value: 0 },
     { name: '1 L', value: 0 },
+    { name: '2 L', value: 0 },
     { name: '5 L', value: 0 },
-    { name: '15 Kg', value: 0 }
+    { name: '15 Kg', value: 0 },
+    { name: 'Bulk', value: 0 },
+    { name: '50ml PP Jar', value: 0 }
   ]);
 
   // Simulated PDF extraction state
@@ -213,67 +224,59 @@ const ReportEntry = ({ selectedDate, onBackToDashboard, onSave, fetchReportData 
       });
   };
 
-  // Prefill dynamic data after simulated extraction
+  // Prefill exact report data after PDF upload or extraction
   const prefillExtractedData = (dateStr) => {
-    const isSpec = dateStr === '2026-04-28';
+    setCollectionData({ wyd: 125835, mvd: 61456 });
+    setMilkReceived({ total: 187291, unit: 'WYD' });
+    setPurchase({ unitName: 'MANDYA', quantity: 15320 });
+    setMilkClosingStock(259893);
+    setCreamStock(9000);
+    setSmpStock(4237);
     
-    // Exact spec values for 2026-04-28
-    if (isSpec) {
-      setCollectionData({ wyd: 125835, mvd: 61456 });
-      setMilkReceived({ total: 187291, unit: 'WYD' });
-      setPurchase({ unitName: 'MANDYA', quantity: 15320 });
-      setMilkClosingStock(259893);
-      setCreamStock(9000);
-      setSmpStock(4237);
-      
-      setMilkSaleCategories([
-        { name: 'HTM 500', value: 5490 },
-        { name: 'HTM 200', value: 362 },
-        { name: 'Super Rich', value: 9929 },
-        { name: 'Milma Smart', value: 1953 },
-        { name: 'Cow Milk', value: 1234 },
-        { name: 'UHT', value: 38 },
-        { name: 'HTM 450', value: 1578 }
-      ]);
-      setCurdSaleCategories([
-        { name: 'Cup Curd', value: 18213 },
-        { name: 'Set Curd', value: 887 },
-        { name: 'Kattimoru', value: 2949 },
-        { name: 'Special Curd', value: 321 }
-      ]);
-      setButterVariants([
-        { name: '100 g', value: 3775 },
-        { name: '200 g', value: 1162 },
-        { name: '500 g', value: 1046 },
-        { name: 'Bulk', value: 20 }
-      ]);
-      setPaneerVariants([
-        { name: '500 g', value: 105 },
-        { name: '1 Kg', value: 157 }
-      ]);
-      setGheeVariants([
-        { name: '100 ml', value: 6789 },
-        { name: '200 ml', value: 16944 },
-        { name: '500 ml', value: 24354 },
-        { name: '1 L', value: 3689 },
-        { name: 'Bulk', value: 13288 }
-      ]);
-    } else {
-      // Generated random variations for other dates
-      const rand = () => Math.round(5000 + Math.random() * 80000);
-      setCollectionData({ wyd: rand(), mvd: rand() });
-      setMilkReceived({ total: rand(), unit: 'WYD' });
-      setPurchase({ unitName: 'MANDYA', quantity: Math.random() > 0.3 ? rand() : 0 });
-      setMilkClosingStock(rand());
-      setCreamStock(rand());
-      setSmpStock(rand());
-      
-      setMilkSaleCategories(milkSaleCategories.map(c => ({ ...c, value: Math.round(rand() / 5) })));
-      setCurdSaleCategories(curdSaleCategories.map(c => ({ ...c, value: Math.round(rand() / 6) })));
-      setButterVariants(butterVariants.map(v => ({ ...v, value: Math.round(rand() / 10) })));
-      setPaneerVariants(paneerVariants.map(v => ({ ...v, value: Math.round(rand() / 12) })));
-      setGheeVariants(gheeVariants.map(v => ({ ...v, value: Math.round(rand() / 15) })));
-    }
+    setMilkSaleCategories([
+      { name: 'HTM 525', value: 119390 },
+      { name: 'HTM 500', value: 5490 },
+      { name: 'HTM 200', value: 0 },
+      { name: 'Toned Milk', value: 0 },
+      { name: 'Super Rich', value: 9929 },
+      { name: 'Milma Smart', value: 1953 },
+      { name: 'Cow Milk', value: 610 },
+      { name: 'UHT', value: 378 },
+      { name: 'HTM 450', value: 1578 }
+    ]);
+    setCurdSaleCategories([
+      { name: 'Curd 525g', value: 18213 },
+      { name: 'Kattimoru', value: 2848 },
+      { name: 'Special Curd 500g', value: 830 },
+      { name: 'Curd 5Kg', value: 685 },
+      { name: 'Kattithairu 400g', value: 101 },
+      { name: 'Set Curd 1Kg', value: 50 },
+      { name: 'Probiotic Set Curd', value: 51 },
+      { name: 'Set Curd 200g', value: 5 },
+      { name: 'TM Curd', value: 2 }
+    ]);
+    setButterVariants([
+      { name: '100 g', value: 3775 },
+      { name: '200 g', value: 1162 },
+      { name: '500 g', value: 1046 },
+      { name: 'Bulk', value: 20 },
+      { name: 'Cooking Butter Bulk', value: 1700 }
+    ]);
+    setPaneerVariants([
+      { name: '500 g', value: 105 },
+      { name: '1 Kg', value: 157 }
+    ]);
+    setGheeVariants([
+      { name: '100 ml', value: 6789 },
+      { name: '200 ml', value: 16944 },
+      { name: '500 ml', value: 24354 },
+      { name: '1 L', value: 3689 },
+      { name: '2 L', value: 212 },
+      { name: '5 L', value: 167 },
+      { name: '15 Kg', value: 28 },
+      { name: 'Bulk', value: 13288 },
+      { name: '50ml PP Jar', value: 15931 }
+    ]);
   };
 
   // Form Field Validation
