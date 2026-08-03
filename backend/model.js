@@ -42,6 +42,9 @@ const DailyOperationsSchema = new mongoose.Schema({
   milkClosingStock: { type: Number, default: 0 },
   products: [ProductStockSchema], // CREAM & SMP will have single "Total" variant or empty variants list, others will have variants
   
+  // Alerts & Updates
+  alerts: [{ type: String }],
+
   // PDF Information
   pdfName: { type: String, default: '' },
   uploadedBy: { type: String, default: 'Admin' },
@@ -57,5 +60,13 @@ const DailyOperationsSchema = new mongoose.Schema({
   timestamps: true
 });
 
+const AlertSchema = new mongoose.Schema({
+  text: { type: String, required: true },
+  active: { type: Boolean, default: true }
+}, {
+  timestamps: true
+});
+
+export const AlertItem = mongoose.model('AlertItem', AlertSchema);
 const DailyOperations = mongoose.model('DailyOperations', DailyOperationsSchema);
 export default DailyOperations;

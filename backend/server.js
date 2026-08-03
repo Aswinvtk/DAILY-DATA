@@ -4,7 +4,7 @@ import dotenv from 'dotenv';
 import multer from 'multer';
 import { createRequire } from 'module';
 import connectDB from './db.js';
-import DailyOperations from './model.js';
+import DailyOperations, { AlertItem } from './model.js';
 
 const require = createRequire(import.meta.url);
 const pdfParse = require('pdf-parse');
@@ -411,6 +411,113 @@ app.post('/api/operations', async (req, res) => {
   } catch (error) {
     console.error('Error saving operations data:', error);
     res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+// ==========================================
+// ALERTS & UPDATES COLLECTION API ENDPOINTS
+// ==========================================
+
+// Helper to seed default alerts if collection is empty
+const seedDefaultAlerts = async () => {
+  try {
+    const count = await AlertItem.countDocuments();
+    if (count === 0) {
+      const defaults = [
+        'All Operations Normal',
+        'Purchase Today: 15,320 Kg from MANDYA',
+        'Butter Stock is Normal',
+        'Auto Refresh : Every 30 Seconds'
+      ];
+      await AlertItem.insertMany(defaults.map(text => ({ text, active: true })));
+      console.log('Default alerts seeded into MongoDB.');
+    }
+  } catch (err) {
+    console.error('Error seeding default alerts:', err);
+  }
+};
+seedDefaultAlerts();
+
+// GET all active alerts & updates
+app.get('/api/alerts', async (req, res) => {
+  try {
+    let alerts = await AlertItem.find().sort({ createdAt: 1 });
+    if (alerts.length === 0) {
+      await seedDefaultAlerts();
+      alerts = await AlertItem.find().sort({ createdAt: 1 });
+    }
+    res.json(alerts);
+  } catch (error) {
+    console.error('Error fetching alerts:', error);
+    res.status(500).json({ error: 'Failed to fetch alerts' });
+  }
+});
+
+// POST add a new alert
+app.post('/api/alerts', async (req, res) => {
+  try {
+    const { text } = req.body;
+    if (!text || !text.trim()) {
+      return res.status(400).json({ error: 'Alert text is required' });
+    }
+    const newAlert = await AlertItem.create({ text: text.trim(), active: true });
+    const allAlerts = await AlertItem.find().sort({ createdAt: 1 });
+    res.json({ success: true, added: newAlert, alerts: allAlerts });
+  } catch (error) {
+    console.error('Error adding alert:', error);
+    res.status(500).json({ error: 'Failed to add alert' });
+  }
+});
+
+// PUT update full list of alerts / sync alerts
+app.put('/api/alerts/sync', async (req, res) => {
+  try {
+    const { alerts } = req.body; // Expecting array of text strings or alert objects
+    if (Array.isArray(alerts)) {
+      await AlertItem.deleteMany({});
+      const newItems = alerts
+        .filter(t => typeof t === 'string' ? t.trim().length > 0 : (t && t.text))
+        .map(t => typeof t === 'string' ? { text: t.trim(), active: true } : { text: t.text.trim(), active: t.active !== false });
+      if (newItems.length > 0) {
+        await AlertItem.insertMany(newItems);
+      }
+    }
+    const updated = await AlertItem.find().sort({ createdAt: 1 });
+    res.json({ success: true, alerts: updated });
+  } catch (error) {
+    console.error('Error syncing alerts:', error);
+    res.status(500).json({ error: 'Failed to sync alerts' });
+  }
+});
+
+// PUT update a specific alert by ID
+app.put('/api/alerts/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { text, active } = req.body;
+    const updateData = {};
+    if (text !== undefined) updateData.text = text.trim();
+    if (active !== undefined) updateData.active = active;
+
+    const updated = await AlertItem.findByIdAndUpdate(id, { $set: updateData }, { new: true });
+    const allAlerts = await AlertItem.find().sort({ createdAt: 1 });
+    res.json({ success: true, updated, alerts: allAlerts });
+  } catch (error) {
+    console.error('Error updating alert:', error);
+    res.status(500).json({ error: 'Failed to update alert' });
+  }
+});
+
+// DELETE remove an alert by ID
+app.delete('/api/alerts/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    await AlertItem.findByIdAndDelete(id);
+    const allAlerts = await AlertItem.find().sort({ createdAt: 1 });
+    res.json({ success: true, alerts: allAlerts });
+  } catch (error) {
+    console.error('Error deleting alert:', error);
+    res.status(500).json({ error: 'Failed to delete alert' });
   }
 });
 

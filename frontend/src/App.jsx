@@ -78,6 +78,20 @@ function App() {
       const res = await fetch(`${API_BASE}/operations?date=${dateStr}`);
       if (!res.ok) throw new Error('API request failed');
       const data = await res.json();
+
+      // Fetch global alerts collection
+      try {
+        const alertsRes = await fetch(`${API_BASE}/alerts`);
+        if (alertsRes.ok) {
+          const alertItems = await alertsRes.json();
+          if (Array.isArray(alertItems) && alertItems.length > 0) {
+            data.alerts = alertItems.map(item => typeof item === 'string' ? item : item.text);
+          }
+        }
+      } catch (err) {
+        console.log('Global alerts fetch note:', err.message);
+      }
+
       setOperationsData(data);
 
       const now = new Date();
@@ -196,8 +210,16 @@ function App() {
 
     setOperationsData(prev => prev ? { ...prev, alerts: newAlerts } : prev);
 
-    if (operationsData) {
-      try {
+    try {
+      // 1. Sync to global alerts collection
+      await fetch(`${API_BASE}/alerts/sync`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ alerts: newAlerts })
+      });
+
+      // 2. Sync to current operations document if present
+      if (operationsData) {
         const payload = {
           ...operationsData,
           date: selectedDate,
@@ -210,11 +232,11 @@ function App() {
         });
         if (res.ok) {
           const updatedDoc = await res.json();
-          setOperationsData(updatedDoc);
+          setOperationsData(prev => ({ ...updatedDoc, alerts: newAlerts }));
         }
-      } catch (e) {
-        console.error('Error updating alerts:', e);
       }
+    } catch (e) {
+      console.error('Error updating alerts:', e);
     }
   };
 
