@@ -184,7 +184,8 @@ const ReportEntry = ({ selectedDate, onBackToDashboard, onSave, fetchReportData 
     formData.append('file', file);
     formData.append('date', reportDate);
 
-    fetch('http://localhost:5000/api/parse-pdf', {
+    const apiHost = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
+    fetch(`http://${apiHost}:5000/api/parse-pdf`, {
       method: 'POST',
       body: formData
     })

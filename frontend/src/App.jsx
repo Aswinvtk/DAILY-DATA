@@ -5,7 +5,8 @@ import RotationSection from './components/RotationSection';
 import Footer from './components/Footer';
 import ReportEntry from './components/ReportEntry';
 
-const API_BASE = 'http://localhost:5000/api';
+const API_HOST = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
+const API_BASE = `http://${API_HOST}:5000/api`;
 
 const getYesterdayDateStr = () => {
   const d = new Date();
