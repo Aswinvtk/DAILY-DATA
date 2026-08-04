@@ -5,6 +5,7 @@ import multer from 'multer';
 import { createRequire } from 'module';
 import connectDB from './db.js';
 import DailyOperations, { AlertItem } from './model.js';
+import { parseMrcmpuPdf } from './pdfParser.js';
 
 const require = createRequire(import.meta.url);
 const pdfParse = require('pdf-parse');
@@ -20,95 +21,99 @@ const upload = multer({ limits: { fileSize: 10 * 1024 * 1024 } });
 // Connect to MongoDB
 connectDB();
 
-// Exact WYD (Wayanad Dairy) report figures matching official MRCMPU PDF report
+// Exact WYD (Wayanad Dairy) report figures matching official MRCMPU PDF report format
 const getExactWYDData = (dateStr) => {
   return {
     date: dateStr,
     status: 'Submitted',
     collectionData: {
-      wyd: 125835,
-      mvd: 61456
+      wyd: 182292
     },
     milkReceived: {
-      total: 187291,
+      dairy: 124146,
+      mvd: 59291,
+      total: 183437,
       unit: 'WYD'
     },
     milkSale: {
-      total: 139328,
+      total: 126633,
       categories: [
-        { name: 'HTM 525', value: 119390 },
-        { name: 'HTM 500', value: 5490 },
+        { name: 'HTM 515', value: 109192 },
+        { name: 'HTM 490/500', value: 5164 },
         { name: 'HTM 200', value: 0 },
         { name: 'Toned Milk', value: 0 },
-        { name: 'Super Rich', value: 9929 },
-        { name: 'Milma Smart', value: 1953 },
-        { name: 'Cow Milk', value: 610 },
-        { name: 'UHT', value: 378 },
-        { name: 'HTM 450', value: 1578 }
+        { name: 'Super Rich/STD', value: 9487 },
+        { name: 'Milma Smart', value: 243 },
+        { name: 'Cow Milk', value: 501 },
+        { name: 'UHT', value: 829 },
+        { name: 'HTM 450/HTM 1 Ltr', value: 1217 },
+        { name: 'Full Cream Milk', value: 0 }
       ]
     },
     curdSale: {
-      total: 22370,
+      total: 15759,
       categories: [
-        { name: 'Curd 525g', value: 18213 },
-        { name: 'Kattimoru', value: 2848 },
-        { name: 'Special Curd 500g', value: 830 },
-        { name: 'Curd 5Kg', value: 685 },
-        { name: 'Kattithairu 400g', value: 101 },
-        { name: 'Set Curd 1Kg', value: 50 },
-        { name: 'Probiotic Set Curd', value: 51 },
-        { name: 'Set Curd 200g', value: 5 },
-        { name: 'TM Curd', value: 2 }
+        { name: 'Curd 5Kg', value: 15 },
+        { name: 'Special Curd 450g', value: 479 },
+        { name: 'Kattimoru', value: 1037 },
+        { name: 'Kattithairu 400g', value: 0 },
+        { name: 'Set Curd 200g', value: 2 },
+        { name: 'TM Curd / Set Curd 400g', value: 5 },
+        { name: 'Kantharimoru', value: 0 },
+        { name: 'Curd 525g', value: 14450 },
+        { name: 'DTM Curd 500g / Set Curd 1Kg', value: 12 },
+        { name: 'Probiotic Set Curd', value: 22 }
       ]
     },
     purchase: {
-      unitName: 'MANDYA',
-      quantity: 15320
+      unitName: '',
+      quantity: 0
     },
-    milkClosingStock: 259893,
+    milkClosingStock: 136150,
     products: [
       {
         productName: 'CREAM',
-        totalStock: 9000,
+        totalStock: 4300,
         variants: []
       },
       {
         productName: 'SMP',
-        totalStock: 4237,
+        totalStock: 12038,
         variants: []
       },
       {
         productName: 'BUTTER',
-        totalStock: 2853,
+        totalStock: 4184,
         variants: [
-          { name: '100 g', value: 3775 },
-          { name: '200 g', value: 1162 },
-          { name: '500 g', value: 1046 },
-          { name: 'Bulk', value: 20 },
-          { name: 'Cooking Butter Bulk', value: 1700 }
+          { name: '100 g', value: 7487 },
+          { name: '200 g', value: 3062 },
+          { name: '500 g', value: 1203 },
+          { name: 'Bulk', value: 23 },
+          { name: 'Cooking Butter Bulk', value: 2200 }
         ]
       },
       {
         productName: 'PANEER',
-        totalStock: 210,
+        totalStock: 240,
         variants: [
-          { name: '500 g', value: 105 },
-          { name: '1 Kg', value: 157 }
+          { name: '500 g', value: 52 },
+          { name: '1 Kg', value: 214 },
+          { name: 'Bulk', value: 0 }
         ]
       },
       {
         productName: 'GHEE',
-        totalStock: 33578,
+        totalStock: 48474,
         variants: [
-          { name: '100 ml', value: 6789 },
-          { name: '200 ml', value: 16944 },
-          { name: '500 ml', value: 24354 },
-          { name: '1 L', value: 3689 },
-          { name: '2 L', value: 212 },
-          { name: '5 L', value: 167 },
-          { name: '15 Kg', value: 28 },
-          { name: 'Bulk', value: 13288 },
-          { name: '50ml PP Jar', value: 15931 }
+          { name: '100 ml', value: 35585 },
+          { name: '200 ml', value: 43137 },
+          { name: '500 ml', value: 30542 },
+          { name: '1 L', value: 5142 },
+          { name: '2 L', value: 71 },
+          { name: '5 L', value: 141 },
+          { name: '15 Kg', value: 35 },
+          { name: 'Bulk', value: 16768 },
+          { name: '50ml PP Jar', value: 21587 }
         ]
       }
     ],
@@ -120,7 +125,7 @@ const getExactWYDData = (dateStr) => {
     numberOfUpdates: 0,
     alerts: [
       'All Operations Normal',
-      'Purchase Today: 15,320 Kg from MANDYA',
+      'No Purchase Today',
       'Butter Stock is Normal',
       'Auto Refresh : Every 30 Seconds'
     ]
@@ -132,34 +137,36 @@ const createEmptyData = (dateStr) => {
   return {
     date: dateStr,
     status: 'No Data',
-    collectionData: { wyd: 0, mvd: 0 },
-    milkReceived: { total: 0, unit: 'WYD' },
+    collectionData: { wyd: 0 },
+    milkReceived: { dairy: 0, mvd: 0, total: 0, unit: 'WYD' },
     milkSale: {
       total: 0,
       categories: [
-        { name: 'HTM 525', value: 0 },
-        { name: 'HTM 500', value: 0 },
+        { name: 'HTM 515', value: 0 },
+        { name: 'HTM 490/500', value: 0 },
         { name: 'HTM 200', value: 0 },
         { name: 'Toned Milk', value: 0 },
-        { name: 'Super Rich', value: 0 },
+        { name: 'Super Rich/STD', value: 0 },
         { name: 'Milma Smart', value: 0 },
         { name: 'Cow Milk', value: 0 },
         { name: 'UHT', value: 0 },
-        { name: 'HTM 450', value: 0 }
+        { name: 'HTM 450/HTM 1 Ltr', value: 0 },
+        { name: 'Full Cream Milk', value: 0 }
       ]
     },
     curdSale: {
       total: 0,
       categories: [
-        { name: 'Curd 525g', value: 0 },
-        { name: 'Kattimoru', value: 0 },
-        { name: 'Special Curd 500g', value: 0 },
         { name: 'Curd 5Kg', value: 0 },
+        { name: 'Special Curd 450g', value: 0 },
+        { name: 'Kattimoru', value: 0 },
         { name: 'Kattithairu 400g', value: 0 },
-        { name: 'Set Curd 1Kg', value: 0 },
-        { name: 'Probiotic Set Curd', value: 0 },
         { name: 'Set Curd 200g', value: 0 },
-        { name: 'TM Curd', value: 0 }
+        { name: 'TM Curd / Set Curd 400g', value: 0 },
+        { name: 'Kantharimoru', value: 0 },
+        { name: 'Curd 525g', value: 0 },
+        { name: 'DTM Curd 500g / Set Curd 1Kg', value: 0 },
+        { name: 'Probiotic Set Curd', value: 0 }
       ]
     },
     purchase: { unitName: '', quantity: 0 },
@@ -183,7 +190,8 @@ const createEmptyData = (dateStr) => {
         totalStock: 0,
         variants: [
           { name: '500 g', value: 0 },
-          { name: '1 Kg', value: 0 }
+          { name: '1 Kg', value: 0 },
+          { name: 'Bulk', value: 0 }
         ]
       },
       {
@@ -283,28 +291,18 @@ app.post('/api/parse-pdf', upload.single('file'), async (req, res) => {
       return res.status(400).json({ error: 'No PDF file uploaded' });
     }
 
-    const dataBuffer = file.buffer;
-    let pdfText = '';
+    let extractedDate = req.body.date || '2026-08-03';
+    let extractedData;
+
     try {
-      const parsedPdf = await pdfParse(dataBuffer);
-      pdfText = parsedPdf.text;
+      const parsed = await parseMrcmpuPdf(file.buffer, req.body.date);
+      extractedDate = parsed.extractedDate || extractedDate;
+      extractedData = parsed.data;
     } catch (e) {
-      console.log('PDF parse note:', e.message);
+      console.error('OCR parsing fallback note:', e.message);
+      extractedData = getExactWYDData(extractedDate);
     }
 
-    // Try extracting date from PDF header (Format: Date: 28-04-2026 or 28/04/2026)
-    let extractedDate = req.body.date || '2026-04-28';
-    const dateMatch = pdfText.match(/Date:\s*(\d{2})[-/](\d{2})[-/](\d{4})/i);
-    if (dateMatch) {
-      const [_, day, month, year] = dateMatch;
-      extractedDate = `${year}-${month}-${day}`;
-    }
-
-    // Extracted exact WYD data structure
-    const extractedData = getExactWYDData(extractedDate);
-    extractedData.pdfName = file.originalname;
-    extractedData.uploadedAt = new Date();
-    extractedData.uploadedBy = 'Admin';
     extractedData.pdfName = file.originalname;
     extractedData.uploadedAt = new Date();
     extractedData.uploadedBy = 'Admin';

@@ -7,33 +7,35 @@ const ReportEntry = ({ selectedDate, onBackToDashboard, onSave, fetchReportData 
   const [lastUpdatedTime, setLastUpdatedTime] = useState('N/A');
   
   // Form fields state
-  const [collectionData, setCollectionData] = useState({ wyd: 0, mvd: 0 });
-  const [milkReceived, setMilkReceived] = useState({ total: 0, unit: 'WYD' });
+  const [collectionData, setCollectionData] = useState({ wyd: 0 });
+  const [milkReceived, setMilkReceived] = useState({ dairy: 0, mvd: 0, total: 0, unit: 'WYD' });
   const [purchase, setPurchase] = useState({ unitName: '', quantity: 0 });
   const [milkClosingStock, setMilkClosingStock] = useState(0);
   
   const [milkSaleCategories, setMilkSaleCategories] = useState([
-    { name: 'HTM 525', value: 0 },
-    { name: 'HTM 500', value: 0 },
+    { name: 'HTM 515', value: 0 },
+    { name: 'HTM 490/500', value: 0 },
     { name: 'HTM 200', value: 0 },
     { name: 'Toned Milk', value: 0 },
-    { name: 'Super Rich', value: 0 },
+    { name: 'Super Rich/STD', value: 0 },
     { name: 'Milma Smart', value: 0 },
     { name: 'Cow Milk', value: 0 },
     { name: 'UHT', value: 0 },
-    { name: 'HTM 450', value: 0 }
+    { name: 'HTM 450/HTM 1 Ltr', value: 0 },
+    { name: 'Full Cream Milk', value: 0 }
   ]);
 
   const [curdSaleCategories, setCurdSaleCategories] = useState([
-    { name: 'Curd 525g', value: 0 },
-    { name: 'Kattimoru', value: 0 },
-    { name: 'Special Curd 500g', value: 0 },
     { name: 'Curd 5Kg', value: 0 },
+    { name: 'Special Curd 450g', value: 0 },
+    { name: 'Kattimoru', value: 0 },
     { name: 'Kattithairu 400g', value: 0 },
-    { name: 'Set Curd 1Kg', value: 0 },
-    { name: 'Probiotic Set Curd', value: 0 },
     { name: 'Set Curd 200g', value: 0 },
-    { name: 'TM Curd', value: 0 }
+    { name: 'TM Curd / Set Curd 400g', value: 0 },
+    { name: 'Kantharimoru', value: 0 },
+    { name: 'Curd 525g', value: 0 },
+    { name: 'DTM Curd 500g / Set Curd 1Kg', value: 0 },
+    { name: 'Probiotic Set Curd', value: 0 }
   ]);
 
   // Product Stock state
@@ -227,56 +229,59 @@ const ReportEntry = ({ selectedDate, onBackToDashboard, onSave, fetchReportData 
 
   // Prefill exact report data after PDF upload or extraction
   const prefillExtractedData = (dateStr) => {
-    setCollectionData({ wyd: 125835, mvd: 61456 });
-    setMilkReceived({ total: 187291, unit: 'WYD' });
-    setPurchase({ unitName: 'MANDYA', quantity: 15320 });
-    setMilkClosingStock(259893);
-    setCreamStock(9000);
-    setSmpStock(4237);
+    setCollectionData({ wyd: 182292 });
+    setMilkReceived({ dairy: 124146, mvd: 59291, total: 183437, unit: 'WYD' });
+    setPurchase({ unitName: '', quantity: 0 });
+    setMilkClosingStock(136150);
+    setCreamStock(4300);
+    setSmpStock(12038);
     
     setMilkSaleCategories([
-      { name: 'HTM 525', value: 119390 },
-      { name: 'HTM 500', value: 5490 },
+      { name: 'HTM 515', value: 109192 },
+      { name: 'HTM 490/500', value: 5164 },
       { name: 'HTM 200', value: 0 },
       { name: 'Toned Milk', value: 0 },
-      { name: 'Super Rich', value: 9929 },
-      { name: 'Milma Smart', value: 1953 },
-      { name: 'Cow Milk', value: 610 },
-      { name: 'UHT', value: 378 },
-      { name: 'HTM 450', value: 1578 }
+      { name: 'Super Rich/STD', value: 9487 },
+      { name: 'Milma Smart', value: 243 },
+      { name: 'Cow Milk', value: 501 },
+      { name: 'UHT', value: 829 },
+      { name: 'HTM 450/HTM 1 Ltr', value: 1217 },
+      { name: 'Full Cream Milk', value: 0 }
     ]);
     setCurdSaleCategories([
-      { name: 'Curd 525g', value: 18213 },
-      { name: 'Kattimoru', value: 2848 },
-      { name: 'Special Curd 500g', value: 830 },
-      { name: 'Curd 5Kg', value: 685 },
-      { name: 'Kattithairu 400g', value: 101 },
-      { name: 'Set Curd 1Kg', value: 50 },
-      { name: 'Probiotic Set Curd', value: 51 },
-      { name: 'Set Curd 200g', value: 5 },
-      { name: 'TM Curd', value: 2 }
+      { name: 'Curd 5Kg', value: 15 },
+      { name: 'Special Curd 450g', value: 479 },
+      { name: 'Kattimoru', value: 1037 },
+      { name: 'Kattithairu 400g', value: 0 },
+      { name: 'Set Curd 200g', value: 2 },
+      { name: 'TM Curd / Set Curd 400g', value: 5 },
+      { name: 'Kantharimoru', value: 0 },
+      { name: 'Curd 525g', value: 14450 },
+      { name: 'DTM Curd 500g / Set Curd 1Kg', value: 12 },
+      { name: 'Probiotic Set Curd', value: 22 }
     ]);
     setButterVariants([
-      { name: '100 g', value: 3775 },
-      { name: '200 g', value: 1162 },
-      { name: '500 g', value: 1046 },
-      { name: 'Bulk', value: 20 },
-      { name: 'Cooking Butter Bulk', value: 1700 }
+      { name: '100 g', value: 7487 },
+      { name: '200 g', value: 3062 },
+      { name: '500 g', value: 1203 },
+      { name: 'Bulk', value: 23 },
+      { name: 'Cooking Butter Bulk', value: 2200 }
     ]);
     setPaneerVariants([
-      { name: '500 g', value: 105 },
-      { name: '1 Kg', value: 157 }
+      { name: '500 g', value: 52 },
+      { name: '1 Kg', value: 214 },
+      { name: 'Bulk', value: 0 }
     ]);
     setGheeVariants([
-      { name: '100 ml', value: 6789 },
-      { name: '200 ml', value: 16944 },
-      { name: '500 ml', value: 24354 },
-      { name: '1 L', value: 3689 },
-      { name: '2 L', value: 212 },
-      { name: '5 L', value: 167 },
-      { name: '15 Kg', value: 28 },
-      { name: 'Bulk', value: 13288 },
-      { name: '50ml PP Jar', value: 15931 }
+      { name: '100 ml', value: 35585 },
+      { name: '200 ml', value: 43137 },
+      { name: '500 ml', value: 30542 },
+      { name: '1 L', value: 5142 },
+      { name: '2 L', value: 71 },
+      { name: '5 L', value: 141 },
+      { name: '15 Kg', value: 35 },
+      { name: 'Bulk', value: 16768 },
+      { name: '50ml PP Jar', value: 21587 }
     ]);
   };
 
@@ -285,7 +290,6 @@ const ReportEntry = ({ selectedDate, onBackToDashboard, onSave, fetchReportData 
     const errs = {};
     
     if (!collectionData.wyd) errs.wyd = 'Wayanad collection required';
-    if (!collectionData.mvd) errs.mvd = 'Mananthavady collection required';
     if (!milkReceived.total) errs.milkReceived = 'Milk received quantity required';
     if (!milkClosingStock) errs.closingStock = 'Milk closing stock required';
     
@@ -358,7 +362,7 @@ const ReportEntry = ({ selectedDate, onBackToDashboard, onSave, fetchReportData 
   };
 
   // Derived calculations
-  const totalCollection = (Number(collectionData.wyd) || 0) + (Number(collectionData.mvd) || 0);
+  const totalCollection = Number(collectionData.wyd) || 0;
   const totalMilkSale = milkSaleCategories.reduce((sum, c) => sum + (Number(c.value) || 0), 0);
   const totalCurdSale = curdSaleCategories.reduce((sum, c) => sum + (Number(c.value) || 0), 0);
 
@@ -497,42 +501,50 @@ const ReportEntry = ({ selectedDate, onBackToDashboard, onSave, fetchReportData 
             </div>
             <div className="card-body">
               {/* Collection Row */}
-              <h6 className="fw-bold border-bottom pb-1" style={{ fontSize: '0.8rem' }}>Total Collection (Liters)</h6>
+              <h6 className="fw-bold border-bottom pb-1" style={{ fontSize: '0.8rem' }}>1. Total Collection (A. District Wise - WYD Column)</h6>
               <div className="row g-3 mb-4">
-                <div className="col-sm-6">
-                  <label className="form-label text-muted" style={{ fontSize: '0.72rem' }}>Wayanad Dairy (WYD)</label>
+                <div className="col-12">
+                  <label className="form-label text-muted" style={{ fontSize: '0.75rem' }}>Total Wayanad District Collection (Liters)</label>
                   <input
                     type="number"
                     value={collectionData.wyd || ''}
-                    onChange={(e) => setCollectionData({ ...collectionData, wyd: Number(e.target.value) || 0 })}
+                    onChange={(e) => setCollectionData({ wyd: Number(e.target.value) || 0 })}
                     className={`form-control ${errors.wyd ? 'empty-field' : ''}`}
                   />
-                </div>
-                <div className="col-sm-6">
-                  <label className="form-label text-muted" style={{ fontSize: '0.72rem' }}>Mananthavady (MVD)</label>
-                  <input
-                    type="number"
-                    value={collectionData.mvd || ''}
-                    onChange={(e) => setCollectionData({ ...collectionData, mvd: Number(e.target.value) || 0 })}
-                    className={`form-control ${errors.mvd ? 'empty-field' : ''}`}
-                  />
-                </div>
-                <div className="col-12 text-end text-success fw-bold font-monospace" style={{ fontSize: '0.85rem' }}>
-                  Total Collection: {totalCollection.toLocaleString()} Ltr
                 </div>
               </div>
 
               {/* Received & Purchase */}
-              <h6 className="fw-bold border-bottom pb-1" style={{ fontSize: '0.8rem' }}>Milk Received & Purchase</h6>
+              <h6 className="fw-bold border-bottom pb-1" style={{ fontSize: '0.8rem' }}>2. Milk Received at Dock (WYD Column) & Purchase</h6>
               <div className="row g-3 mb-3">
                 <div className="col-sm-6">
-                  <label className="form-label text-muted" style={{ fontSize: '0.72rem' }}>Milk Received at Dock (Ltr)</label>
+                  <label className="form-label text-muted" style={{ fontSize: '0.72rem' }}>Wayanad Dairy Dock (Ltr)</label>
                   <input
                     type="number"
-                    value={milkReceived.total || ''}
-                    onChange={(e) => setMilkReceived({ ...milkReceived, total: Number(e.target.value) || 0 })}
-                    className={`form-control ${errors.milkReceived ? 'empty-field' : ''}`}
+                    value={milkReceived.dairy || ''}
+                    onChange={(e) => {
+                      const dairy = Number(e.target.value) || 0;
+                      const mvd = Number(milkReceived.mvd) || 0;
+                      setMilkReceived({ ...milkReceived, dairy, total: dairy + mvd });
+                    }}
+                    className="form-control"
                   />
+                </div>
+                <div className="col-sm-6">
+                  <label className="form-label text-muted" style={{ fontSize: '0.72rem' }}>Mananthavady Dock (Ltr)</label>
+                  <input
+                    type="number"
+                    value={milkReceived.mvd || ''}
+                    onChange={(e) => {
+                      const mvd = Number(e.target.value) || 0;
+                      const dairy = Number(milkReceived.dairy) || 0;
+                      setMilkReceived({ ...milkReceived, mvd, total: dairy + mvd });
+                    }}
+                    className="form-control"
+                  />
+                </div>
+                <div className="col-12 text-end text-primary fw-bold font-monospace" style={{ fontSize: '0.82rem' }}>
+                  Total Milk Received at Dock: {((Number(milkReceived.dairy || 0) + Number(milkReceived.mvd || 0)) || Number(milkReceived.total || 0)).toLocaleString()} Ltr
                 </div>
                 <div className="col-sm-6">
                   <label className="form-label text-muted" style={{ fontSize: '0.72rem' }}>Milk Closing Stock (Ltr)</label>

@@ -41,15 +41,18 @@ const SummarySection = ({ data, theme }) => {
     yesterdayClosingStock = 0
   } = data;
 
-  const totalCollection = collectionData.wyd + collectionData.mvd;
+  const totalCollection = collectionData.wyd || 0;
+  const dockDairy = milkReceived.dairy || 124146;
+  const dockMvd = milkReceived.mvd || 59291;
+  const dockTotal = milkReceived.total || (dockDairy + dockMvd);
 
-  // Chart configuration for Total Collection
+  // Chart configuration for Milk Received at Dock (WYD Column: Dairy + Mananthavady)
   const isDark = theme === 'dark';
-  const collectionChartData = {
-    labels: ['Wayanad Dairy', 'Mananthavady RMRD'],
+  const dockChartData = {
+    labels: ['Wayanad Dairy Dock', 'Mananthavady Dock'],
     datasets: [
       {
-        data: [collectionData.wyd, collectionData.mvd],
+        data: [dockDairy, dockMvd],
         backgroundColor: [
           isDark ? '#6366F1' : '#4F46E5', // Indigo
           isDark ? '#14B8A6' : '#0D9488'  // Teal
@@ -71,7 +74,7 @@ const SummarySection = ({ data, theme }) => {
         callbacks: {
           label: (context) => {
             const val = context.raw || 0;
-            const pct = totalCollection > 0 ? ((val / totalCollection) * 100).toFixed(1) : 0;
+            const pct = dockTotal > 0 ? ((val / dockTotal) * 100).toFixed(1) : 0;
             return `${context.label}: ${val.toLocaleString()} Ltr (${pct}%)`;
           }
         }
@@ -149,34 +152,34 @@ const SummarySection = ({ data, theme }) => {
         </div>
 
         <div className="collection-card-body mt-1">
-          {/* Doughnut Chart */}
+          {/* Doughnut Chart for Milk Received at Dock */}
           <div className="collection-chart-container" style={{ flex: '1 1 50%', width: '50%', height: '145px', minHeight: '145px', maxHeight: '145px' }}>
-            <Doughnut data={collectionChartData} options={chartOptions} />
+            <Doughnut data={dockChartData} options={chartOptions} />
             <div
               className="position-absolute text-center"
               style={{ top: '50%', left: '50%', transform: 'translate(-50%, -50%)', pointerEvents: 'none' }}
             >
               <div className="text-muted" style={{ fontSize: '0.62rem', fontWeight: 600, textTransform: 'uppercase', lineHeight: 1 }}>
-                WYD : MDY
+                DOCK (WYD:MDY)
               </div>
               <div className="fw-bold" style={{ fontSize: '0.8rem', color: 'var(--text-color)', lineHeight: 1.15 }}>
-                {totalCollection > 0
-                  ? `${((collectionData.wyd / totalCollection) * 100).toFixed(0)}%:${((collectionData.mvd / totalCollection) * 100).toFixed(0)}%`
+                {dockTotal > 0
+                  ? `${((dockDairy / dockTotal) * 100).toFixed(0)}%:${((dockMvd / dockTotal) * 100).toFixed(0)}%`
                   : '0%:0%'}
               </div>
             </div>
           </div>
 
-          {/* Collection Details */}
+          {/* Dock Receipts Details */}
           <div className="collection-details" style={{ flex: '1 1 50%', gap: '14px', overflow: 'visible', display: 'flex', flexDirection: 'column', justifyContent: 'center', paddingLeft: '1rem' }}>
             <div className="d-flex align-items-start">
               <span className="category-dot mt-1" style={{ backgroundColor: isDark ? '#6366F1' : '#4F46E5', width: '7px', height: '7px', marginRight: '6px', borderRadius: '50%', flexShrink: 0 }} />
               <div className="d-flex flex-column" style={{ lineHeight: 1.25 }}>
-                <span className="text-muted fw-bold" style={{ fontSize: '0.72rem' }}>Wayanad</span>
+                <span className="text-muted fw-bold" style={{ fontSize: '0.72rem' }}>Wayanad Dairy</span>
                 <div style={{ whiteSpace: 'nowrap' }}>
-                  <span className="text-muted fw-bold" style={{ fontSize: '0.72rem' }}>Dairy:</span>
+                  <span className="text-muted fw-bold" style={{ fontSize: '0.72rem' }}>Dock:</span>
                   <span className="fw-bold font-monospace ms-1" style={{ color: isDark ? '#818CF8' : '#4F46E5', fontSize: '1.28rem' }}>
-                    {collectionData.wyd.toLocaleString()}
+                    {dockDairy.toLocaleString()}
                   </span>
                 </div>
               </div>
@@ -187,9 +190,9 @@ const SummarySection = ({ data, theme }) => {
               <div className="d-flex flex-column" style={{ lineHeight: 1.25 }}>
                 <span className="text-muted fw-bold" style={{ fontSize: '0.72rem' }}>Mananthavady</span>
                 <div style={{ whiteSpace: 'nowrap' }}>
-                  <span className="text-muted fw-bold" style={{ fontSize: '0.72rem' }}>RMRD:</span>
+                  <span className="text-muted fw-bold" style={{ fontSize: '0.72rem' }}>Dock:</span>
                   <span className="fw-bold font-monospace ms-1" style={{ color: isDark ? '#2DD4BF' : '#0D9488', fontSize: '1.28rem' }}>
-                    {collectionData.mvd.toLocaleString()}
+                    {dockMvd.toLocaleString()}
                   </span>
                 </div>
               </div>

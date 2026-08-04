@@ -29,11 +29,11 @@ const DailyOperationsSchema = new mongoose.Schema({
   },
   milkSale: {
     total: { type: Number, required: true, default: 0 },
-    categories: [CategoryValueSchema] // HTM 525, HTM 500, HTM 200, Toned Milk, Super Rich, Cow Milk, UHT
+    categories: [CategoryValueSchema] // HTM 515, HTM 490/500, HTM 200, Toned Milk, Super Rich/STD, Milma Smart, Cow Milk, UHT, HTM 450/HTM 1 Ltr, Full Cream Milk
   },
   curdSale: {
     total: { type: Number, required: true, default: 0 },
-    categories: [CategoryValueSchema] // Cup Curd, Set Curd, Kattimoru, Special Curd, Others
+    categories: [CategoryValueSchema] // Curd 5Kg, Special Curd 450g, Kattimoru, Kattithairu 400g, Set Curd 200g, TM Curd / Set Curd 400g, Kantharimoru, Curd 525g, DTM Curd 500g / Set Curd 1Kg, Probiotic Set Curd
   },
   purchase: {
     unitName: { type: String, default: '' },
