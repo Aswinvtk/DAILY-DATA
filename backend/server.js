@@ -54,7 +54,7 @@ const getExactWYDData = (dateStr) => {
       total: 15759,
       categories: [
         { name: 'Curd 5Kg', value: 15 },
-        { name: 'Special Curd 450g', value: 479 },
+        { name: 'Special Curd 450g', value: 216 },
         { name: 'Kattimoru', value: 1037 },
         { name: 'Kattithairu 400g', value: 0 },
         { name: 'Set Curd 200g', value: 2 },
@@ -283,7 +283,7 @@ app.get('/api/operations', async (req, res) => {
   }
 });
 
-// PDF Upload & Accurate Parsing for MRCMPU Daily Report (WYD Column)
+// PDF Upload & Dynamic OCR Parsing for MRCMPU Daily Report (WYD Column)
 app.post('/api/parse-pdf', upload.single('file'), async (req, res) => {
   try {
     const file = req.file;
@@ -291,16 +291,19 @@ app.post('/api/parse-pdf', upload.single('file'), async (req, res) => {
       return res.status(400).json({ error: 'No PDF file uploaded' });
     }
 
-    let extractedDate = req.body.date || '2026-08-03';
+    let extractedDate = req.body.date || new Date().toISOString().split('T')[0];
     let extractedData;
+    let extractedFields = [];
 
     try {
       const parsed = await parseMrcmpuPdf(file.buffer, req.body.date);
       extractedDate = parsed.extractedDate || extractedDate;
       extractedData = parsed.data;
+      extractedFields = extractedData.extractedFields || [];
+      console.log(`PDF parsed successfully. Auto-extracted: [${extractedFields.join(', ')}]`);
     } catch (e) {
-      console.error('OCR parsing fallback note:', e.message);
-      extractedData = getExactWYDData(extractedDate);
+      console.error('PDF parsing error, returning empty template:', e.message);
+      extractedData = createEmptyData(extractedDate);
     }
 
     extractedData.pdfName = file.originalname;
@@ -310,6 +313,7 @@ app.post('/api/parse-pdf', upload.single('file'), async (req, res) => {
     res.json({
       success: true,
       extractedDate,
+      extractedFields,  // Tell frontend which fields were auto-extracted
       data: extractedData
     });
   } catch (err) {

@@ -24,6 +24,8 @@ const DailyOperationsSchema = new mongoose.Schema({
     mvd: { type: Number, required: true, default: 0 }
   },
   milkReceived: {
+    dairy: { type: Number, default: 0 },
+    mvd: { type: Number, default: 0 },
     total: { type: Number, required: true, default: 0 },
     unit: { type: String, default: 'WYD' }
   },

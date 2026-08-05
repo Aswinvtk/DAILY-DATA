@@ -193,7 +193,15 @@ const ReportEntry = ({ selectedDate, onBackToDashboard, onSave, fetchReportData 
     })
       .then(res => res.json())
       .then(result => {
-        setUploadProgress(prev => [...prev, 'Extracted Wayanad (WYD) figures successfully!', '✓ Completed']);
+        const fields = result.extractedFields || [];
+        const progressMsgs = ['✓ PDF processed successfully'];
+        if (fields.includes('date')) progressMsgs.push('✓ Date extracted');
+        if (fields.includes('milkReceivedTotal')) progressMsgs.push('✓ Total PROC (Milk Received) extracted');
+        if (fields.includes('totalMilkSale')) progressMsgs.push('✓ Total Milk Sale extracted');
+        if (fields.includes('totalCurdSale')) progressMsgs.push('✓ Total Curd Sale extracted');
+        if (fields.length === 0) progressMsgs.push('⚠ No fields could be auto-extracted');
+        progressMsgs.push('ℹ Please fill in category breakdowns & stock values manually');
+        setUploadProgress(prev => [...prev, '✓ PDF data extracted & form auto-filled successfully!']);
         setIsExtracting(false);
         if (result.data) {
           const d = result.data;
@@ -201,29 +209,30 @@ const ReportEntry = ({ selectedDate, onBackToDashboard, onSave, fetchReportData 
           if (d.milkReceived) setMilkReceived(d.milkReceived);
           if (d.purchase) setPurchase(d.purchase);
           if (d.milkClosingStock) setMilkClosingStock(d.milkClosingStock);
-          if (d.milkSale?.categories) setMilkSaleCategories(d.milkSale.categories);
-          if (d.curdSale?.categories) setCurdSaleCategories(d.curdSale.categories);
+          if (d.milkSale?.categories && d.milkSale.categories.length > 0) {
+            setMilkSaleCategories(d.milkSale.categories);
+          }
+          if (d.curdSale?.categories && d.curdSale.categories.length > 0) {
+            setCurdSaleCategories(d.curdSale.categories);
+          }
           if (d.products) {
             const cream = d.products.find(p => p.productName === 'CREAM');
             if (cream) setCreamStock(cream.totalStock);
             const smp = d.products.find(p => p.productName === 'SMP');
             if (smp) setSmpStock(smp.totalStock);
             const butter = d.products.find(p => p.productName === 'BUTTER');
-            if (butter) setButterVariants(butter.variants);
+            if (butter && butter.variants && butter.variants.length > 0) setButterVariants(butter.variants);
             const paneer = d.products.find(p => p.productName === 'PANEER');
-            if (paneer) setPaneerVariants(paneer.variants);
+            if (paneer && paneer.variants && paneer.variants.length > 0) setPaneerVariants(paneer.variants);
             const ghee = d.products.find(p => p.productName === 'GHEE');
-            if (ghee) setGheeVariants(ghee.variants);
+            if (ghee && ghee.variants && ghee.variants.length > 0) setGheeVariants(ghee.variants);
           }
-        } else {
-          prefillExtractedData(reportDate);
         }
       })
       .catch(err => {
         console.error('PDF upload error:', err);
-        setUploadProgress(prev => [...prev, '✓ Extraction complete (WYD Default format applied)']);
+        setUploadProgress(prev => [...prev, '⚠ PDF extraction failed. Please enter all values manually.']);
         setIsExtracting(false);
-        prefillExtractedData(reportDate);
       });
   };
 
@@ -250,7 +259,7 @@ const ReportEntry = ({ selectedDate, onBackToDashboard, onSave, fetchReportData 
     ]);
     setCurdSaleCategories([
       { name: 'Curd 5Kg', value: 15 },
-      { name: 'Special Curd 450g', value: 479 },
+      { name: 'Special Curd 450g', value: 216 },
       { name: 'Kattimoru', value: 1037 },
       { name: 'Kattithairu 400g', value: 0 },
       { name: 'Set Curd 200g', value: 2 },

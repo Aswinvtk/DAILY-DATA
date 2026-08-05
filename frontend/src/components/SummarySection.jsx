@@ -42,21 +42,30 @@ const SummarySection = ({ data, theme }) => {
   } = data;
 
   const totalCollection = collectionData.wyd || 0;
-  const dockDairy = milkReceived.dairy || 124146;
-  const dockMvd = milkReceived.mvd || 59291;
+  const dockDairy = milkReceived.dairy || 0;
+  const dockMvd = milkReceived.mvd || 0;
   const dockTotal = milkReceived.total || (dockDairy + dockMvd);
+
+  const computedMilkSaleTotal = milkSale.categories && milkSale.categories.length > 0 && milkSale.categories.some(c => c.value > 0)
+    ? milkSale.categories.reduce((sum, c) => sum + (Number(c.value) || 0), 0)
+    : (milkSale.total || 0);
+
+  const computedCurdSaleTotal = curdSale.categories && curdSale.categories.length > 0 && curdSale.categories.some(c => c.value > 0)
+    ? curdSale.categories.reduce((sum, c) => sum + (Number(c.value) || 0), 0)
+    : (curdSale.total || 0);
 
   // Chart configuration for Milk Received at Dock (WYD Column: Dairy + Mananthavady)
   const isDark = theme === 'dark';
+  const hasDockBreakdown = dockDairy > 0 || dockMvd > 0;
   const dockChartData = {
-    labels: ['Wayanad Dairy Dock', 'Mananthavady Dock'],
+    labels: hasDockBreakdown ? ['Wayanad Dairy Dock', 'Mananthavady Dock'] : ['Milk Received at Dock'],
     datasets: [
       {
-        data: [dockDairy, dockMvd],
-        backgroundColor: [
+        data: hasDockBreakdown ? [dockDairy, dockMvd] : [dockTotal || 1],
+        backgroundColor: hasDockBreakdown ? [
           isDark ? '#6366F1' : '#4F46E5', // Indigo
           isDark ? '#14B8A6' : '#0D9488'  // Teal
-        ],
+        ] : [isDark ? '#6366F1' : '#4F46E5'],
         borderWidth: isDark ? 1 : 2,
         borderColor: isDark ? '#1e1e1e' : '#ffffff',
         hoverOffset: 4
@@ -204,7 +213,7 @@ const SummarySection = ({ data, theme }) => {
           className="text-center rounded mt-2 py-1"
           style={{ background: 'rgba(40,167,69,0.08)', fontSize: '0.68rem', fontWeight: 600, color: 'var(--color-collection)' }}
         >
-          Total Collection = WYD + Mananthavady
+          Wayanad District Collection (A. District Wise)
         </div>
       </div>
 
@@ -217,7 +226,7 @@ const SummarySection = ({ data, theme }) => {
         <div className="text-muted text-uppercase fw-bold mb-1" style={{ fontSize: '0.7rem', letterSpacing: '1px' }}>
           Total Milk Sale in ltr.
         </div>
-        <AnimatedValue value={milkSale.total} unit="Ltr" className="value-display mt-0 mb-2" style={{ fontSize: '2.5rem' }} />
+        <AnimatedValue value={computedMilkSaleTotal} unit="Ltr" className="value-display mt-0 mb-2" style={{ fontSize: '2.5rem' }} />
         <div className="border-top border-opacity-10 pt-2 flex-grow-1">
           <div className="text-muted text-uppercase font-weight-bold" style={{ fontSize: '0.6rem', letterSpacing: '0.5px', marginBottom: '10px' }}>Category Wise</div>
           {renderCategoriesTable(milkSale.categories, 'Ltr')}
@@ -233,7 +242,7 @@ const SummarySection = ({ data, theme }) => {
         <div className="text-muted text-uppercase fw-bold mb-1" style={{ fontSize: '0.7rem', letterSpacing: '1px' }}>
           Total Curd  Sale in kg.
         </div>
-        <AnimatedValue value={curdSale.total} unit="Kg" className="value-display mt-0 mb-2" style={{ fontSize: '2.5rem' }} />
+        <AnimatedValue value={computedCurdSaleTotal} unit="Kg" className="value-display mt-0 mb-2" style={{ fontSize: '2.5rem' }} />
         <div className="border-top border-opacity-10 pt-2 flex-grow-1">
           <div className="text-muted text-uppercase font-weight-bold" style={{ fontSize: '0.6rem', letterSpacing: '0.5px', marginBottom: '4px' }}>Category Wise</div>
           {renderCategoriesTable(curdSale.categories, 'Kg')}
@@ -252,7 +261,7 @@ const SummarySection = ({ data, theme }) => {
         {purchase.quantity > 0 ? (
           <AnimatedValue value={purchase.quantity} unit="Ltr" className="value-display mt-0 mb-2" style={{ fontSize: '2.5rem' }} />
         ) : (
-          <div className="value-display mt-0 mb-2 text-muted" style={{ fontSize: '1.7rem', fontFamily: 'var(--font-digital)' }}>No Purchase</div>
+          <div className="value-display mt-0 mb-2 text-muted" style={{ fontSize: '1.7rem', fontFamily: 'var(--font-digital)' }}>No Ouside Purchase Today</div>
         )}
         <div className="border-top border-opacity-10 pt-2 flex-grow-1 d-flex flex-column justify-content-end">
           <div
@@ -280,18 +289,18 @@ const SummarySection = ({ data, theme }) => {
           Total Milk Closing Stock in ltr.
         </div>
         <AnimatedValue value={milkClosingStock || 0} unit="Ltr" className="value-display mt-0 mb-2" style={{ fontSize: '2.5rem' }} />
-        <div className="border-top border-opacity-10 pt-2 flex-grow-1">
-          <div className="d-flex justify-content-between align-items-center mb-1">
-            <span className="text-muted text-uppercase" style={{ fontSize: '0.62rem', fontWeight: 700 }}>Yesterday</span>
-            <span className="fw-bold font-monospace" style={{ fontSize: '0.8rem', color: 'var(--text-color)' }}>
-              {(yesterdayClosingStock || 0).toLocaleString()} Ltr
-            </span>
-          </div>
-          <div className="d-flex justify-content-between align-items-center">
-            <span className="text-muted text-uppercase" style={{ fontSize: '0.62rem', fontWeight: 700 }}>Difference</span>
-            <span className="fw-bold font-monospace" style={{ fontSize: '0.82rem', color: diffColor }}>
-              {diffSign}{closingStockDiff.toLocaleString()} Ltr
-            </span>
+        <div className="border-top border-opacity-10 pt-2 flex-grow-1 d-flex flex-column justify-content-end">
+          <div
+            className="text-center rounded py-2 border text-uppercase"
+            style={{
+              background: 'rgba(13, 202, 240, 0.06)',
+              borderColor: 'var(--border-color)',
+              fontSize: '0.72rem',
+              color: 'var(--color-stock-highlight)'
+            }}
+          >
+            <div className="text-muted" style={{ fontSize: '0.6rem' }}>Status</div>
+            <div className="fw-bold">Stock Verified</div>
           </div>
         </div>
       </div>
