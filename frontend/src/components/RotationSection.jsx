@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Doughnut } from 'react-chartjs-2';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
-import { Box, Layers, ShieldCheck, Database, Calendar } from 'lucide-react';
-
 ChartJS.register(ArcElement, Tooltip, Legend);
 
 const RotationSection = ({

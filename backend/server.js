@@ -2,13 +2,10 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import multer from 'multer';
-import { createRequire } from 'module';
 import connectDB from './db.js';
 import DailyOperations, { AlertItem } from './model.js';
-import { parseMrcmpuPdf } from './pdfParser.js';
+import { parseWayanadExcel } from './excelParser.js';
 
-const require = createRequire(import.meta.url);
-const pdfParse = require('pdf-parse');
 
 dotenv.config();
 
@@ -21,118 +18,7 @@ const upload = multer({ limits: { fileSize: 10 * 1024 * 1024 } });
 // Connect to MongoDB
 connectDB();
 
-// Exact WYD (Wayanad Dairy) report figures matching official MRCMPU PDF report format
-const getExactWYDData = (dateStr) => {
-  return {
-    date: dateStr,
-    status: 'Submitted',
-    collectionData: {
-      wyd: 182292
-    },
-    milkReceived: {
-      dairy: 124146,
-      mvd: 59291,
-      total: 183437,
-      unit: 'WYD'
-    },
-    milkSale: {
-      total: 126633,
-      categories: [
-        { name: 'HTM 515', value: 109192 },
-        { name: 'HTM 490/500', value: 5164 },
-        { name: 'HTM 200', value: 0 },
-        { name: 'Toned Milk', value: 0 },
-        { name: 'Super Rich/STD', value: 9487 },
-        { name: 'Milma Smart', value: 243 },
-        { name: 'Cow Milk', value: 501 },
-        { name: 'UHT', value: 829 },
-        { name: 'HTM 450/HTM 1 Ltr', value: 1217 },
-        { name: 'Full Cream Milk', value: 0 }
-      ]
-    },
-    curdSale: {
-      total: 15759,
-      categories: [
-        { name: 'Curd 5Kg', value: 15 },
-        { name: 'Special Curd 450g', value: 216 },
-        { name: 'Kattimoru', value: 1037 },
-        { name: 'Kattithairu 400g', value: 0 },
-        { name: 'Set Curd 200g', value: 2 },
-        { name: 'TM Curd / Set Curd 400g', value: 5 },
-        { name: 'Kantharimoru', value: 0 },
-        { name: 'Curd 525g', value: 14450 },
-        { name: 'DTM Curd 500g / Set Curd 1Kg', value: 12 },
-        { name: 'Probiotic Set Curd', value: 22 }
-      ]
-    },
-    purchase: {
-      unitName: '',
-      quantity: 0
-    },
-    milkClosingStock: 136150,
-    products: [
-      {
-        productName: 'CREAM',
-        totalStock: 4300,
-        variants: []
-      },
-      {
-        productName: 'SMP',
-        totalStock: 12038,
-        variants: []
-      },
-      {
-        productName: 'BUTTER',
-        totalStock: 4184,
-        variants: [
-          { name: '100 g', value: 7487 },
-          { name: '200 g', value: 3062 },
-          { name: '500 g', value: 1203 },
-          { name: 'Bulk', value: 23 },
-          { name: 'Cooking Butter Bulk', value: 2200 }
-        ]
-      },
-      {
-        productName: 'PANEER',
-        totalStock: 240,
-        variants: [
-          { name: '500 g', value: 52 },
-          { name: '1 Kg', value: 214 },
-          { name: 'Bulk', value: 0 }
-        ]
-      },
-      {
-        productName: 'GHEE',
-        totalStock: 48474,
-        variants: [
-          { name: '100 ml', value: 35585 },
-          { name: '200 ml', value: 43137 },
-          { name: '500 ml', value: 30542 },
-          { name: '1 L', value: 5142 },
-          { name: '2 L', value: 71 },
-          { name: '5 L', value: 141 },
-          { name: '15 Kg', value: 35 },
-          { name: 'Bulk', value: 16768 },
-          { name: '50ml PP Jar', value: 21587 }
-        ]
-      }
-    ],
-    pdfName: `Daily_Report_${dateStr.replace(/-/g, '_')}.pdf`,
-    uploadedBy: 'Admin',
-    uploadedAt: new Date(),
-    createdBy: 'Admin',
-    createdDate: new Date(),
-    numberOfUpdates: 0,
-    alerts: [
-      'All Operations Normal',
-      'No Purchase Today',
-      'Butter Stock is Normal',
-      'Auto Refresh : Every 30 Seconds'
-    ]
-  };
-};
-
-// Plain empty structure for dates with no entered data (No dummy numbers)
+// Plain empty structure returned for dates with no data in the database
 const createEmptyData = (dateStr) => {
   return {
     date: dateStr,
@@ -141,36 +27,25 @@ const createEmptyData = (dateStr) => {
     milkReceived: { dairy: 0, mvd: 0, total: 0, unit: 'WYD' },
     milkSale: {
       total: 0,
-      categories: [
-        { name: 'HTM 515', value: 0 },
-        { name: 'HTM 490/500', value: 0 },
-        { name: 'HTM 200', value: 0 },
-        { name: 'Toned Milk', value: 0 },
-        { name: 'Super Rich/STD', value: 0 },
-        { name: 'Milma Smart', value: 0 },
-        { name: 'Cow Milk', value: 0 },
-        { name: 'UHT', value: 0 },
-        { name: 'HTM 450/HTM 1 Ltr', value: 0 },
-        { name: 'Full Cream Milk', value: 0 }
-      ]
+      categories: []
     },
     curdSale: {
       total: 0,
-      categories: [
-        { name: 'Curd 5Kg', value: 0 },
-        { name: 'Special Curd 450g', value: 0 },
-        { name: 'Kattimoru', value: 0 },
-        { name: 'Kattithairu 400g', value: 0 },
-        { name: 'Set Curd 200g', value: 0 },
-        { name: 'TM Curd / Set Curd 400g', value: 0 },
-        { name: 'Kantharimoru', value: 0 },
-        { name: 'Curd 525g', value: 0 },
-        { name: 'DTM Curd 500g / Set Curd 1Kg', value: 0 },
-        { name: 'Probiotic Set Curd', value: 0 }
-      ]
+      categories: []
     },
     purchase: { unitName: '', quantity: 0 },
     milkClosingStock: 0,
+    // Net sales from Excel
+    gheeNetSale: 0,
+    pedaNetSale: 0,
+    paladaNetSale: 0,
+    sambaramNetSale: 0,
+    butterNetSale: 0,
+    uhtMilkNetSale: 0,
+    // Manual milk collection (optional)
+    totalCollection: 0,
+    receivedAtDockWyd: 0,
+    receivedAtDockMdy: 0,
     products: [
       { productName: 'CREAM', totalStock: 0, variants: [] },
       { productName: 'SMP', totalStock: 0, variants: [] },
@@ -210,30 +85,13 @@ const createEmptyData = (dateStr) => {
         ]
       }
     ],
-    pdfName: '',
+    excelFileName: '',
     uploadedBy: '',
     createdBy: '',
     numberOfUpdates: 0,
     alerts: ['No report submitted for selected date']
   };
 };
-
-// Seed initial spec date data on start
-const seedInitialData = async () => {
-  try {
-    const specDate = '2026-04-28';
-    const existing = await DailyOperations.findOne({ date: specDate });
-    if (!existing) {
-      console.log(`Seeding initial MRCMPU PDF spec data for ${specDate}...`);
-      const specData = getExactWYDData(specDate);
-      await DailyOperations.create(specData);
-      console.log('Seeding completed successfully.');
-    }
-  } catch (err) {
-    console.error('Error seeding initial data:', err);
-  }
-};
-seedInitialData();
 
 const getYesterdayClosingStock = async (dateStr, todayStock) => {
   try {
@@ -266,11 +124,7 @@ app.get('/api/operations', async (req, res) => {
 
     let data = await DailyOperations.findOne({ date: dateStr });
     if (!data) {
-      if (dateStr === '2026-04-28') {
-        data = getExactWYDData(dateStr);
-      } else {
-        data = createEmptyData(dateStr);
-      }
+      data = createEmptyData(dateStr);
     }
 
     const responseData = data.toObject ? data.toObject() : { ...data };
@@ -283,61 +137,89 @@ app.get('/api/operations', async (req, res) => {
   }
 });
 
-// PDF Upload & Dynamic OCR Parsing for MRCMPU Daily Report (WYD Column)
-app.post('/api/parse-pdf', upload.single('file'), async (req, res) => {
+// Excel Upload & Data Extraction for Wayanad Daily Sales
+app.post('/api/parse-excel', upload.single('file'), async (req, res) => {
+  const startTime = Date.now();
   try {
     const file = req.file;
     if (!file) {
-      return res.status(400).json({ error: 'No PDF file uploaded' });
+      return res.status(400).json({ error: 'No Excel file uploaded' });
     }
 
-    let extractedDate = req.body.date || new Date().toISOString().split('T')[0];
-    let extractedData;
-    let extractedFields = [];
+    const ext = (file.originalname || '').toLowerCase();
+    if (!ext.endsWith('.xlsx') && !ext.endsWith('.xls')) {
+      return res.status(400).json({ error: 'Only .xlsx or .xls files are supported' });
+    }
 
+    console.log(`[parse-excel] Received: "${file.originalname}" (${(file.size / 1024).toFixed(1)} KB)`);
+    console.log(`[parse-excel] Date: ${req.body.date || '(none)'}`);
+
+    const extractedDate = req.body.date || new Date().toISOString().split('T')[0];
+
+    let parsed;
     try {
-      const parsed = await parseMrcmpuPdf(file.buffer, req.body.date);
-      extractedDate = parsed.extractedDate || extractedDate;
-      extractedData = parsed.data;
-      extractedFields = extractedData.extractedFields || [];
-      console.log(`PDF parsed successfully. Auto-extracted: [${extractedFields.join(', ')}]`);
+      parsed = parseWayanadExcel(file.buffer);
     } catch (e) {
-      console.error('PDF parsing error, returning empty template:', e.message);
-      extractedData = createEmptyData(extractedDate);
+      console.error('[parse-excel] Parse error:', e.message);
+      parsed = { extractedFields: [] };
     }
 
-    extractedData.pdfName = file.originalname;
-    extractedData.uploadedAt = new Date();
-    extractedData.uploadedBy = 'Admin';
+    const elapsed = Date.now() - startTime;
+    console.log(`[parse-excel] Done in ${elapsed}ms`);
+
+    // Build response data using milkSale.total from milkNetSale, etc.
+    const extractedData = {
+      date: extractedDate,
+      milkSale: { total: parsed.milkNetSale || 0, categories: [] },
+      curdSale: { total: parsed.curdNetSale || 0, categories: [] },
+      purchase: { unitName: parsed.purchaseUnitName || '', quantity: parsed.purchaseTotal || 0 },
+      gheeNetSale:     parsed.gheeNetSale || 0,
+      pedaNetSale:     parsed.pedaNetSale || 0,
+      paladaNetSale:   parsed.paladaNetSale || 0,
+      sambaramNetSale: parsed.sambaramNetSale || 0,
+      butterNetSale:   parsed.butterNetSale || 0,
+      uhtMilkNetSale:  parsed.uhtMilkNetSale || 0,
+      excelFileName: file.originalname,
+      uploadedAt: new Date(),
+      uploadedBy: 'Admin',
+      extractedFields: parsed.extractedFields || []
+    };
 
     res.json({
       success: true,
       extractedDate,
-      extractedFields,  // Tell frontend which fields were auto-extracted
+      extractedFields: parsed.extractedFields || [],
       data: extractedData
     });
   } catch (err) {
-    console.error('PDF parsing error:', err);
-    res.status(500).json({ error: 'Failed to parse PDF document' });
+    console.error('[parse-excel] Unhandled error:', err);
+    res.status(500).json({ error: 'Failed to parse Excel file' });
   }
 });
+
 
 // Save or Update data (used by Data Entry Panel)
 app.post('/api/operations', async (req, res) => {
   try {
-    const { date, status, pdfName } = req.body;
+    const { date, status } = req.body;
     if (!date) {
       return res.status(400).json({ error: 'Date is required for saving data' });
     }
 
     const payload = req.body;
 
-    // Recompute totals for safety
-    if (payload.milkSale && payload.milkSale.categories) {
-      payload.milkSale.total = payload.milkSale.categories.reduce((sum, c) => sum + (Number(c.value) || 0), 0);
+    // Recompute totals for safety only if categories are populated
+    if (payload.milkSale && Array.isArray(payload.milkSale.categories) && payload.milkSale.categories.length > 0) {
+      const catSum = payload.milkSale.categories.reduce((sum, c) => sum + (Number(c.value) || 0), 0);
+      if (catSum > 0) {
+        payload.milkSale.total = catSum;
+      }
     }
-    if (payload.curdSale && payload.curdSale.categories) {
-      payload.curdSale.total = payload.curdSale.categories.reduce((sum, c) => sum + (Number(c.value) || 0), 0);
+    if (payload.curdSale && Array.isArray(payload.curdSale.categories) && payload.curdSale.categories.length > 0) {
+      const catSum = payload.curdSale.categories.reduce((sum, c) => sum + (Number(c.value) || 0), 0);
+      if (catSum > 0) {
+        payload.curdSale.total = catSum;
+      }
     }
     if (payload.products) {
       payload.products.forEach(p => {
@@ -370,16 +252,6 @@ app.post('/api/operations', async (req, res) => {
       payload.updatedBy = 'Admin';
       payload.updatedDate = new Date();
 
-      if (pdfName) {
-        payload.pdfName = pdfName;
-        payload.uploadedBy = 'Admin';
-        payload.uploadedAt = new Date();
-      } else {
-        payload.pdfName = existing.pdfName;
-        payload.uploadedBy = existing.uploadedBy;
-        payload.uploadedAt = existing.uploadedAt;
-      }
-
       if (status === 'Submitted') {
         payload.status = existing.status === 'Draft' ? 'Submitted' : 'Updated';
       } else {
@@ -390,12 +262,6 @@ app.post('/api/operations', async (req, res) => {
       payload.createdBy = 'Admin';
       payload.createdDate = new Date();
       payload.status = status || 'Submitted';
-
-      if (pdfName) {
-        payload.pdfName = pdfName;
-        payload.uploadedBy = 'Admin';
-        payload.uploadedAt = new Date();
-      }
     }
 
     const updatedData = await DailyOperations.findOneAndUpdate(

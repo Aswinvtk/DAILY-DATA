@@ -1,7 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Doughnut } from 'react-chartjs-2';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
-import { Truck, ShoppingCart, CupSoda, ClipboardList, TrendingUp, Database } from 'lucide-react';
+import {
+  Truck, ShoppingCart, CupSoda, ClipboardList,
+  Flame, Candy, UtensilsCrossed, Droplets, Milk, Zap, Database
+} from 'lucide-react';
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
@@ -23,7 +26,7 @@ const AnimatedValue = ({ value, unit = '', className = '', style }) => {
 
   return (
     <div className={`${className} ${flash ? 'value-flash' : ''}`} style={style}>
-      {displayVal} <span style={{ fontSize: '0.9rem', fontWeight: 500 }}>{unit}</span>
+      {displayVal} <span style={{ fontSize: '0.85em', fontWeight: 500 }}>{unit}</span>
     </div>
   );
 };
@@ -32,49 +35,50 @@ const SummarySection = ({ data, theme }) => {
   if (!data) return null;
 
   const {
-    collectionData = { wyd: 0, mvd: 0 },
-    milkReceived = { total: 0, unit: 'WYD' },
-    milkSale = { total: 0, categories: [] },
-    curdSale = { total: 0, categories: [] },
+    milkSale = { total: 0 },
+    curdSale = { total: 0 },
     purchase = { unitName: '', quantity: 0 },
     milkClosingStock = 0,
-    yesterdayClosingStock = 0
+    totalCollection = 0,
+    gheeNetSale = 0,
+    pedaNetSale = 0,
+    paladaNetSale = 0,
+    sambaramNetSale = 0,
+    butterNetSale = 0,
+    uhtMilkNetSale = 0,
   } = data;
 
-  const totalCollection = collectionData.wyd || 0;
-  const dockDairy = milkReceived.dairy || 0;
-  const dockMvd = milkReceived.mvd || 0;
-  const dockTotal = milkReceived.total || (dockDairy + dockMvd);
-
-  const computedMilkSaleTotal = milkSale.categories && milkSale.categories.length > 0 && milkSale.categories.some(c => c.value > 0)
-    ? milkSale.categories.reduce((sum, c) => sum + (Number(c.value) || 0), 0)
-    : (milkSale.total || 0);
-
-  const computedCurdSaleTotal = curdSale.categories && curdSale.categories.length > 0 && curdSale.categories.some(c => c.value > 0)
-    ? curdSale.categories.reduce((sum, c) => sum + (Number(c.value) || 0), 0)
-    : (curdSale.total || 0);
-
-  // Chart configuration for Milk Received at Dock (WYD Column: Dairy + Mananthavady)
+  const milkSaleTotal = milkSale.total || 0;
+  const curdSaleTotal = curdSale.total || 0;
   const isDark = theme === 'dark';
-  const hasDockBreakdown = dockDairy > 0 || dockMvd > 0;
+
+  // Received at Dock breakdown (WYD vs MDY)
+  const dockWyd = data.receivedAtDockWyd || data.milkReceived?.dairy || 0;
+  const dockMdy = data.receivedAtDockMdy || data.milkReceived?.mvd || 0;
+  const dockTotal = dockWyd + dockMdy;
+
+  const wydPct = dockTotal > 0 ? ((dockWyd / dockTotal) * 100).toFixed(1) : '0.0';
+  const mdyPct = dockTotal > 0 ? ((dockMdy / dockTotal) * 100).toFixed(1) : '0.0';
+
+  // Doughnut Chart Data for Dock Receipts (WYD vs MDY)
   const dockChartData = {
-    labels: hasDockBreakdown ? ['Wayanad Dairy Dock', 'Mananthavady Dock'] : ['Milk Received at Dock'],
+    labels: ['WYD Dock', 'MDY Dock'],
     datasets: [
       {
-        data: hasDockBreakdown ? [dockDairy, dockMvd] : [dockTotal || 1],
-        backgroundColor: hasDockBreakdown ? [
-          isDark ? '#6366F1' : '#4F46E5', // Indigo
-          isDark ? '#14B8A6' : '#0D9488'  // Teal
-        ] : [isDark ? '#6366F1' : '#4F46E5'],
-        borderWidth: isDark ? 1 : 2,
-        borderColor: isDark ? '#1e1e1e' : '#ffffff',
+        data: dockTotal > 0 ? [dockWyd, dockMdy] : [1, 0],
+        backgroundColor: [
+          '#6366F1', // WYD Indigo
+          '#14B8A6'  // MDY Teal
+        ],
+        borderWidth: 2,
+        borderColor: isDark ? '#111827' : '#ffffff',
         hoverOffset: 4
       }
     ]
   };
 
   const chartOptions = {
-    cutout: '65%',
+    cutout: '70%',
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
@@ -91,218 +95,449 @@ const SummarySection = ({ data, theme }) => {
     }
   };
 
-  // Helper for sales breakdown tables
-  const renderCategoriesTable = (categories, unit) => {
-    if (!categories || categories.length === 0) return <div className="text-muted text-center py-2">No categories</div>;
-
-    return (
-      <table className="category-table">
-        <tbody>
-          {categories.map((cat, i) => {
-            let dotColor = '#dee2e6';
-            const colors = [
-              '#007bff', '#28a745', '#fd7e14', '#6f42c1', '#0dcaf0', '#e83e8c', '#20c997'
-            ];
-            dotColor = colors[i % colors.length];
-
-            return (
-              <tr key={i} style={{ lineHeight: '1.2' }}>
-                <td style={{ color: 'var(--text-color)', padding: '2px 0', fontSize: '0.7rem' }}>
-                  <span className="category-dot" style={{ backgroundColor: dotColor, width: '5px', height: '5px' }}></span>
-                  {cat.name}
-                </td>
-                <td className="text-end font-monospace text-muted" style={{ padding: '2px 0', fontSize: '0.7rem' }}>
-                  {cat.value > 0 ? `${cat.value.toLocaleString()} ${unit}` : '-'}
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    );
-  };
-
-
-  const closingStockDiff = (milkClosingStock || 0) - (yesterdayClosingStock || 0);
-  const diffSign = closingStockDiff >= 0 ? '+' : '';
-  const diffColor = closingStockDiff >= 0 ? 'var(--color-collection)' : '#dc3545';
+  // Bottom 6 Product Cards
+  const bottomCards = [
+    {
+      id: 'ghee-net-sale',
+      icon: <Flame size={16} color="#f59e0b" />,
+      title: 'GHEE NET SALE',
+      value: gheeNetSale,
+      unit: 'Ltr',
+      color: '#f59e0b',
+      bgColor: isDark ? 'rgba(245,158,11,0.07)' : 'rgba(245,158,11,0.05)',
+      borderColor: 'rgba(245,158,11,0.35)',
+      subLabel: 'GHEE SALES'
+    },
+    {
+      id: 'peda-net-sale',
+      icon: <Candy size={16} color="#ec4899" />,
+      title: 'PEDA NET SALE',
+      value: pedaNetSale,
+      unit: 'Kg',
+      color: '#ec4899',
+      bgColor: isDark ? 'rgba(236,72,153,0.07)' : 'rgba(236,72,153,0.05)',
+      borderColor: 'rgba(236,72,153,0.35)',
+      subLabel: 'SWEET SALES'
+    },
+    {
+      id: 'palada-net-sale',
+      icon: <UtensilsCrossed size={16} color="#8b5cf6" />,
+      title: 'PALADA NET SALE',
+      value: paladaNetSale,
+      unit: 'Kg',
+      color: '#8b5cf6',
+      bgColor: isDark ? 'rgba(139,92,246,0.07)' : 'rgba(139,92,246,0.05)',
+      borderColor: 'rgba(139,92,246,0.35)',
+      subLabel: 'PAYASAM MIX'
+    },
+    {
+      id: 'sambaram',
+      icon: <Droplets size={16} color="#06b6d4" />,
+      title: 'SAMBARAM',
+      value: sambaramNetSale,
+      unit: 'Ltr',
+      color: '#06b6d4',
+      bgColor: isDark ? 'rgba(6,182,212,0.07)' : 'rgba(6,182,212,0.05)',
+      borderColor: 'rgba(6,182,212,0.35)',
+      subLabel: 'SPICED BUTTERMILK'
+    },
+    {
+      id: 'butter-net-sale',
+      icon: <Milk size={16} color="#f97316" />,
+      title: 'BUTTER',
+      value: butterNetSale,
+      unit: 'Kg',
+      color: '#f97316',
+      bgColor: isDark ? 'rgba(249,115,22,0.07)' : 'rgba(249,115,22,0.05)',
+      borderColor: 'rgba(249,115,22,0.35)',
+      subLabel: 'BUTTER SALES'
+    },
+    {
+      id: 'uht-milk',
+      icon: <Zap size={16} color="#22d3ee" />,
+      title: 'UHT MILK',
+      value: uhtMilkNetSale,
+      unit: 'Ltr',
+      color: '#22d3ee',
+      bgColor: isDark ? 'rgba(34,211,238,0.07)' : 'rgba(34,211,238,0.05)',
+      borderColor: 'rgba(34,211,238,0.35)',
+      subLabel: 'LONG LIFE MILK'
+    }
+  ];
 
   return (
-    <div className="section-summary">
+    <div className="section-summary-wrapper">
 
-      {/* 1. Total Collection Card */}
-      <div className="industrial-card card-collection">
-        <div className="card-title-text d-flex justify-content-between align-items-center w-100 mb-2">
-          <div className="d-flex align-items-center gap-2">
-            <TrendingUp size={15} style={{ color: 'var(--color-collection)' }} />
-            <span>TOTAL WAYANAD COLLECTION</span>
-          </div>
-        </div>
+      {/* ── Top 4 Cards ─────────────────────────────────────────────── */}
+      <div className="section-summary-top">
 
-        {/* Top metrics (large size) wrapped in rounded rectangles */}
-        <div className="d-flex justify-content-between align-items-center mb-2 gap-2 px-1">
-          <div className="flex-grow-1 p-2 rounded" style={{
-            background: isDark ? 'rgba(255, 255, 255, 0.03)' : 'rgba(0, 0, 0, 0.02)',
-            border: isDark ? '1px solid rgba(255, 255, 255, 0.06)' : '1px solid rgba(0, 0, 0, 0.05)',
-            borderRadius: '6px'
-          }}>
-            <div className="text-muted text-uppercase" style={{ fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.3px' }}>Total Collection</div>
-            <AnimatedValue value={totalCollection} unit="Ltr" className="value-display" style={{ fontSize: '1.9rem', margin: '4px 0 0 0' }} />
+        {/* CARD 1: MILK COLLECTION */}
+        <div className="industrial-card card-collection d-flex flex-column justify-content-between p-3" style={{ background: isDark ? '#0b1329' : '#ffffff' }}>
+
+          {/* Header */}
+          <div className="d-flex align-items-center justify-content-center gap-2 mb-2">
+            <div className="rounded-circle p-1 d-flex align-items-center justify-content-center" style={{ background: 'rgba(34,197,94,0.15)', border: '1px solid #22c55e' }}>
+              <Truck size={16} color="#22c55e" />
+            </div>
+            <div className="d-flex align-items-center gap-2">
+              <span style={{ color: '#22c55e', fontSize: '0.75rem' }}>•••━</span>
+              <span className="fw-black text-uppercase tracking-wider" style={{ fontSize: '1.05rem', color: isDark ? '#ffffff' : '#0f172a', letterSpacing: '1.5px' }}>MILK COLLECTION</span>
+              <span style={{ color: '#22c55e', fontSize: '0.75rem' }}>━•••</span>
+            </div>
           </div>
 
-          <div className="flex-grow-1 p-2 rounded text-end" style={{
-            background: isDark ? 'rgba(255, 255, 255, 0.03)' : 'rgba(0, 0, 0, 0.02)',
-            border: isDark ? '1px solid rgba(255, 255, 255, 0.06)' : '1px solid rgba(0, 0, 0, 0.05)',
-            borderRadius: '6px'
-          }}>
-            <div className="text-muted text-uppercase" style={{ fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.3px' }}>Milk received at DOCK</div>
-            <AnimatedValue value={milkReceived.total} unit="Ltr" className="value-display" style={{ color: 'var(--color-received)', fontSize: '1.9rem', margin: '4px 0 0 0' }} />
+          {/* TOTAL MILK COLLECTION Box */}
+          <div
+            className="rounded-3 p-2 text-center position-relative my-1"
+            style={{
+              background: isDark ? 'rgba(34,197,94,0.06)' : 'rgba(34,197,94,0.04)',
+              border: '1px solid rgba(34,197,94,0.35)',
+              boxShadow: isDark ? '0 0 15px rgba(34,197,94,0.1)' : 'none'
+            }}
+          >
+            <div className="text-uppercase fw-bold" style={{ fontSize: '0.65rem', color: isDark ? '#a7f3d0' : '#166534', letterSpacing: '1px' }}>
+              TOTAL MILK COLLECTION
+            </div>
+            <AnimatedValue
+              value={totalCollection}
+              unit="Ltr"
+              className="value-display my-0 fw-black"
+              style={{ fontSize: '2.2rem', color: '#22c55e' }}
+            />
           </div>
-        </div>
 
-        <div className="collection-card-body mt-1">
-          {/* Doughnut Chart for Milk Received at Dock */}
-          <div className="collection-chart-container" style={{ flex: '1 1 50%', width: '50%', height: '145px', minHeight: '145px', maxHeight: '145px' }}>
-            <Doughnut data={dockChartData} options={chartOptions} />
+          {/* WYD Box | Donut Chart | MDY Box */}
+          <div className="d-flex align-items-center justify-content-between my-2 position-relative px-1">
             <div
-              className="position-absolute text-center"
-              style={{ top: '50%', left: '50%', transform: 'translate(-50%, -50%)', pointerEvents: 'none' }}
+              className="rounded-3 p-2 text-center flex-grow-1"
+              style={{
+                background: isDark ? 'rgba(99,102,241,0.08)' : 'rgba(99,102,241,0.05)',
+                border: '1px solid rgba(99,102,241,0.35)',
+                maxWidth: '120px'
+              }}
             >
-              <div className="text-muted" style={{ fontSize: '0.62rem', fontWeight: 600, textTransform: 'uppercase', lineHeight: 1 }}>
-                DOCK (WYD:MDY)
+              <div className="d-flex align-items-center justify-content-center gap-1 mb-1">
+                <span className="rounded-circle" style={{ width: '7px', height: '7px', backgroundColor: '#6366F1' }}></span>
+                <span className="fw-bold text-uppercase" style={{ fontSize: '0.72rem', color: isDark ? '#e0e7ff' : '#3730a3' }}>WYD</span>
               </div>
-              <div className="fw-bold" style={{ fontSize: '0.8rem', color: 'var(--text-color)', lineHeight: 1.15 }}>
-                {dockTotal > 0
-                  ? `${((dockDairy / dockTotal) * 100).toFixed(0)}%:${((dockMvd / dockTotal) * 100).toFixed(0)}%`
-                  : '0%:0%'}
+              <div className="fw-black font-monospace" style={{ fontSize: '1.05rem', color: '#818CF8' }}>
+                {dockWyd.toLocaleString()}
+              </div>
+              <div className="text-muted" style={{ fontSize: '0.62rem' }}>Ltr</div>
+              <div className="border-top border-secondary border-opacity-25 mt-1 pt-1 fw-bold" style={{ fontSize: '0.65rem', color: '#818CF8' }}>
+                {wydPct}% <span style={{ fontSize: '0.55rem', opacity: 0.8 }}>OF TOTAL</span>
+              </div>
+            </div>
+
+            <div className="flex-grow-1 border-top border-secondary border-opacity-50 mx-1" style={{ borderStyle: 'dotted' }}></div>
+
+            <div style={{ width: '110px', height: '110px', position: 'relative', flexShrink: 0 }}>
+              <Doughnut data={dockChartData} options={chartOptions} />
+              <div
+                className="position-absolute rounded-circle d-flex align-items-center justify-content-center"
+                style={{
+                  top: '50%',
+                  left: '50%',
+                  transform: 'translate(-50%, -50%)',
+                  width: '46px',
+                  height: '46px',
+                  background: isDark ? '#090d16' : '#f8fafc',
+                  border: '2px solid rgba(255,255,255,0.1)',
+                  boxShadow: '0 0 10px rgba(0,0,0,0.5)',
+                  pointerEvents: 'none'
+                }}
+              >
+                <Milk size={22} color="#38bdf8" />
+              </div>
+            </div>
+
+            <div className="flex-grow-1 border-top border-secondary border-opacity-50 mx-1" style={{ borderStyle: 'dotted' }}></div>
+
+            <div
+              className="rounded-3 p-2 text-center flex-grow-1"
+              style={{
+                background: isDark ? 'rgba(20,184,166,0.08)' : 'rgba(20,184,166,0.05)',
+                border: '1px solid rgba(20,184,166,0.35)',
+                maxWidth: '120px'
+              }}
+            >
+              <div className="d-flex align-items-center justify-content-center gap-1 mb-1">
+                <span className="rounded-circle" style={{ width: '7px', height: '7px', backgroundColor: '#14B8A6' }}></span>
+                <span className="fw-bold text-uppercase" style={{ fontSize: '0.72rem', color: isDark ? '#ccfbf1' : '#115e59' }}>MDY</span>
+              </div>
+              <div className="fw-black font-monospace" style={{ fontSize: '1.05rem', color: '#2DD4BF' }}>
+                {dockMdy.toLocaleString()}
+              </div>
+              <div className="text-muted" style={{ fontSize: '0.62rem' }}>Ltr</div>
+              <div className="border-top border-secondary border-opacity-25 mt-1 pt-1 fw-bold" style={{ fontSize: '0.65rem', color: '#2DD4BF' }}>
+                {mdyPct}% <span style={{ fontSize: '0.55rem', opacity: 0.8 }}>OF TOTAL</span>
               </div>
             </div>
           </div>
 
-          {/* Dock Receipts Details */}
-          <div className="collection-details" style={{ flex: '1 1 50%', gap: '14px', overflow: 'visible', display: 'flex', flexDirection: 'column', justifyContent: 'center', paddingLeft: '1rem' }}>
-            <div className="d-flex align-items-start">
-              <span className="category-dot mt-1" style={{ backgroundColor: isDark ? '#6366F1' : '#4F46E5', width: '7px', height: '7px', marginRight: '6px', borderRadius: '50%', flexShrink: 0 }} />
-              <div className="d-flex flex-column" style={{ lineHeight: 1.25 }}>
-                <span className="text-muted fw-bold" style={{ fontSize: '0.72rem' }}>Wayanad Dairy</span>
-                <div style={{ whiteSpace: 'nowrap' }}>
-                  <span className="text-muted fw-bold" style={{ fontSize: '0.72rem' }}>Dock:</span>
-                  <span className="fw-bold font-monospace ms-1" style={{ color: isDark ? '#818CF8' : '#4F46E5', fontSize: '1.28rem' }}>
-                    {dockDairy.toLocaleString()}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <div className="d-flex align-items-start">
-              <span className="category-dot mt-1" style={{ backgroundColor: isDark ? '#14B8A6' : '#0D9488', width: '7px', height: '7px', marginRight: '6px', borderRadius: '50%', flexShrink: 0 }} />
-              <div className="d-flex flex-column" style={{ lineHeight: 1.25 }}>
-                <span className="text-muted fw-bold" style={{ fontSize: '0.72rem' }}>Mananthavady</span>
-                <div style={{ whiteSpace: 'nowrap' }}>
-                  <span className="text-muted fw-bold" style={{ fontSize: '0.72rem' }}>Dock:</span>
-                  <span className="fw-bold font-monospace ms-1" style={{ color: isDark ? '#2DD4BF' : '#0D9488', fontSize: '1.28rem' }}>
-                    {dockMvd.toLocaleString()}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div
-          className="text-center rounded mt-2 py-1"
-          style={{ background: 'rgba(40,167,69,0.08)', fontSize: '0.68rem', fontWeight: 600, color: 'var(--color-collection)' }}
-        >
-          Wayanad District Collection (A. District Wise)
-        </div>
-      </div>
-
-      {/* 2. Milk Net Sale Card */}
-      <div className="industrial-card card-sale">
-        <div className="card-title-text">
-          <ShoppingCart size={15} style={{ color: 'var(--color-sale)' }} />
-          MILK NET SALE
-        </div>
-        <div className="text-muted text-uppercase fw-bold mb-1" style={{ fontSize: '0.7rem', letterSpacing: '1px' }}>
-          Total Milk Sale in ltr.
-        </div>
-        <AnimatedValue value={computedMilkSaleTotal} unit="Ltr" className="value-display mt-0 mb-2" style={{ fontSize: '2.5rem' }} />
-        <div className="border-top border-opacity-10 pt-2 flex-grow-1">
-          <div className="text-muted text-uppercase font-weight-bold" style={{ fontSize: '0.6rem', letterSpacing: '0.5px', marginBottom: '10px' }}>Category Wise</div>
-          {renderCategoriesTable(milkSale.categories, 'Ltr')}
-        </div>
-      </div>
-
-      {/* 3. Curd Sale Card */}
-      <div className="industrial-card card-curd">
-        <div className="card-title-text">
-          <CupSoda size={15} style={{ color: 'var(--color-curd)' }} />
-          CURD SALE
-        </div>
-        <div className="text-muted text-uppercase fw-bold mb-1" style={{ fontSize: '0.7rem', letterSpacing: '1px' }}>
-          Total Curd  Sale in kg.
-        </div>
-        <AnimatedValue value={computedCurdSaleTotal} unit="Kg" className="value-display mt-0 mb-2" style={{ fontSize: '2.5rem' }} />
-        <div className="border-top border-opacity-10 pt-2 flex-grow-1">
-          <div className="text-muted text-uppercase font-weight-bold" style={{ fontSize: '0.6rem', letterSpacing: '0.5px', marginBottom: '4px' }}>Category Wise</div>
-          {renderCategoriesTable(curdSale.categories, 'Kg')}
-        </div>
-      </div>
-
-      {/* 4. Purchase Card */}
-      <div className="industrial-card card-purchase">
-        <div className="card-title-text">
-          <ClipboardList size={15} style={{ color: 'var(--color-purchase)' }} />
-          PURCHASE (WAYANAD DAIRY)
-        </div>
-        <div className="text-muted text-uppercase fw-bold mb-1" style={{ fontSize: '0.7rem', letterSpacing: '1px' }}>
-          Total Purchase in ltr.
-        </div>
-        {purchase.quantity > 0 ? (
-          <AnimatedValue value={purchase.quantity} unit="Ltr" className="value-display mt-0 mb-2" style={{ fontSize: '2.5rem' }} />
-        ) : (
-          <div className="value-display mt-0 mb-2 text-muted" style={{ fontSize: '1.7rem', fontFamily: 'var(--font-digital)' }}>No Ouside Purchase Today</div>
-        )}
-        <div className="border-top border-opacity-10 pt-2 flex-grow-1 d-flex flex-column justify-content-end">
+          {/* TOTAL MILK RECEIVED AT DOCK Box */}
           <div
-            className="text-center rounded py-2 border text-uppercase"
+            className="rounded-3 p-2 d-flex align-items-center justify-content-between my-1"
             style={{
-              background: 'rgba(111, 66, 193, 0.06)',
-              borderColor: 'var(--border-color)',
-              fontSize: '0.72rem',
-              color: 'var(--color-purchase)'
+              background: isDark ? 'rgba(6,182,212,0.07)' : 'rgba(6,182,212,0.04)',
+              border: '1px dashed rgba(6,182,212,0.4)'
             }}
           >
-            <div className="text-muted" style={{ fontSize: '0.6rem' }}>From Unit</div>
-            <div className="fw-bold">{purchase.quantity > 0 ? purchase.unitName : 'N/A'}</div>
+            <div className="rounded-circle p-1 d-flex align-items-center justify-content-center" style={{ background: 'rgba(6,182,212,0.2)', width: '32px', height: '32px' }}>
+              <Truck size={16} color="#38bdf8" />
+            </div>
+            <div className="text-center">
+              <div className="text-uppercase fw-bold" style={{ fontSize: '0.62rem', color: isDark ? '#cffaff' : '#0e7490', letterSpacing: '0.5px' }}>
+                TOTAL MILK RECEIVED AT DOCK
+              </div>
+              <div className="fw-black font-monospace" style={{ fontSize: '1.3rem', color: '#38bdf8' }}>
+                {dockTotal.toLocaleString()} <span style={{ fontSize: '0.75rem', fontWeight: 500 }}>Ltr</span>
+              </div>
+            </div>
+            <div className="rounded-circle p-1 d-flex align-items-center justify-content-center" style={{ background: 'rgba(6,182,212,0.2)', width: '32px', height: '32px' }}>
+              <Milk size={16} color="#38bdf8" />
+            </div>
           </div>
-        </div>
-      </div>
 
-      {/* 5. Closing Stock Card */}
-      <div className="industrial-card card-stock">
-        <div className="card-title-text">
-          <Database size={15} style={{ color: 'var(--color-stock-highlight)' }} />
-          Milk Closing Stock
-        </div>
-        <div className="text-muted text-uppercase fw-bold mb-1" style={{ fontSize: '0.7rem', letterSpacing: '1px' }}>
-          Total Milk Closing Stock in ltr.
-        </div>
-        <AnimatedValue value={milkClosingStock || 0} unit="Ltr" className="value-display mt-0 mb-2" style={{ fontSize: '2.5rem' }} />
-        <div className="border-top border-opacity-10 pt-2 flex-grow-1 d-flex flex-column justify-content-end">
+          {/* CLOSING STOCK Box */}
           <div
-            className="text-center rounded py-2 border text-uppercase"
+            className="rounded-3 p-2 d-flex align-items-center justify-content-between mt-1"
             style={{
-              background: 'rgba(13, 202, 240, 0.06)',
-              borderColor: 'var(--border-color)',
-              fontSize: '0.72rem',
-              color: 'var(--color-stock-highlight)'
+              background: isDark ? 'linear-gradient(135deg, rgba(234,179,8,0.15) 0%, rgba(217,119,6,0.1) 100%)' : 'linear-gradient(135deg, rgba(234,179,8,0.1) 0%, rgba(217,119,6,0.05) 100%)',
+              border: '1.5px solid #eab308',
+              boxShadow: isDark ? '0 0 15px rgba(234,179,8,0.15)' : 'none'
             }}
           >
-            <div className="text-muted" style={{ fontSize: '0.6rem' }}>Status</div>
-            <div className="fw-bold">Stock Verified</div>
+            <div className="rounded-circle p-1 d-flex align-items-center justify-content-center" style={{ background: 'rgba(234,179,8,0.25)', width: '36px', height: '36px' }}>
+              <Database size={18} color="#eab308" />
+            </div>
+            <div className="text-center flex-grow-1 ms-2 me-2">
+              <div className="fw-black text-uppercase" style={{ fontSize: '0.72rem', color: isDark ? '#fef08a' : '#854d0e', letterSpacing: '1px' }}>
+                CLOSING STOCK
+              </div>
+              <AnimatedValue
+                value={milkClosingStock}
+                unit="Ltr"
+                className="value-display my-0 fw-black font-monospace"
+                style={{ fontSize: '1.7rem', color: '#eab308' }}
+              />
+            </div>
+            <div style={{ width: '36px' }}></div>
           </div>
+
         </div>
+
+        {/* CARD 2: MILK NET SALE */}
+        <div className="industrial-card card-sale d-flex flex-column justify-content-between p-3 text-center" style={{ background: isDark ? '#0b1329' : '#ffffff' }}>
+
+          {/* Header */}
+          <div className="d-flex align-items-center justify-content-center gap-2 mb-2">
+            <div className="rounded-circle p-1 d-flex align-items-center justify-content-center" style={{ background: 'rgba(59,130,246,0.15)', border: '1px solid #3b82f6' }}>
+              <ShoppingCart size={16} color="#3b82f6" />
+            </div>
+            <div className="d-flex align-items-center gap-1">
+              <span style={{ color: '#3b82f6', fontSize: '0.7rem' }}>••━</span>
+              <span className="fw-black text-uppercase tracking-wider" style={{ fontSize: '0.98rem', color: isDark ? '#ffffff' : '#0f172a', letterSpacing: '1px' }}>MILK NET SALE</span>
+              <span style={{ color: '#3b82f6', fontSize: '0.7rem' }}>━••</span>
+            </div>
+          </div>
+
+          {/* Central Main Box with ENLARGED Quantity */}
+          <div
+            className="rounded-3 p-3 my-auto d-flex flex-column align-items-center justify-content-center flex-grow-1"
+            style={{
+              background: isDark ? 'rgba(59,130,246,0.06)' : 'rgba(59,130,246,0.04)',
+              border: '1px solid rgba(59,130,246,0.35)',
+              boxShadow: isDark ? '0 0 20px rgba(59,130,246,0.12)' : 'none'
+            }}
+          >
+            <div className="text-uppercase fw-bold mb-1" style={{ fontSize: '0.68rem', color: isDark ? '#bfdbfe' : '#1e40af', letterSpacing: '1px' }}>
+              WAYAND DAIRY TOTAL MILK SALES
+            </div>
+            <AnimatedValue
+              value={milkSaleTotal}
+              unit="Ltr"
+              className="value-display my-1 fw-black text-center"
+              style={{ fontSize: '3.1rem', color: '#60a5fa' }}
+            />
+            <div className="badge bg-primary bg-opacity-25 text-primary px-3 py-1 mt-1 font-monospace" style={{ fontSize: '0.68rem' }}>
+              HTM + COW MILK + STD  + ETC
+            </div>
+          </div>
+
+          {/* Bottom Container */}
+          <div
+            className="rounded-3 p-2 text-center text-uppercase mt-2"
+            style={{
+              background: isDark ? 'rgba(59,130,246,0.1)' : 'rgba(59,130,246,0.06)',
+              border: '1px solid rgba(59,130,246,0.3)'
+            }}
+          >
+            <div className="text-muted fw-bold" style={{ fontSize: '0.62rem', letterSpacing: '0.5px' }}>DISTRIBUTION REGION</div>
+            <div className="fw-bold font-monospace" style={{ color: isDark ? '#93c5fd' : '#1d4ed8', fontSize: '0.85rem' }}>WAYANAD + NADAPURAM + ULIYERI + NILAMBUR </div>
+          </div>
+
+        </div>
+
+        {/* CARD 3: CURD NET SALE */}
+        <div className="industrial-card card-curd d-flex flex-column justify-content-between p-3 text-center" style={{ background: isDark ? '#0b1329' : '#ffffff' }}>
+
+          {/* Header */}
+          <div className="d-flex align-items-center justify-content-center gap-2 mb-2">
+            <div className="rounded-circle p-1 d-flex align-items-center justify-content-center" style={{ background: 'rgba(16,185,129,0.15)', border: '1px solid #10b981' }}>
+              <CupSoda size={16} color="#10b981" />
+            </div>
+            <div className="d-flex align-items-center gap-1">
+              <span style={{ color: '#10b981', fontSize: '0.7rem' }}>••━</span>
+              <span className="fw-black text-uppercase tracking-wider" style={{ fontSize: '0.98rem', color: isDark ? '#ffffff' : '#0f172a', letterSpacing: '1px' }}>CURD NET SALE</span>
+              <span style={{ color: '#10b981', fontSize: '0.7rem' }}>━••</span>
+            </div>
+          </div>
+
+          {/* Central Main Box with ENLARGED Quantity */}
+          <div
+            className="rounded-3 p-3 my-auto d-flex flex-column align-items-center justify-content-center flex-grow-1"
+            style={{
+              background: isDark ? 'rgba(16,185,129,0.06)' : 'rgba(16,185,129,0.04)',
+              border: '1px solid rgba(16,185,129,0.35)',
+              boxShadow: isDark ? '0 0 20px rgba(16,185,129,0.12)' : 'none'
+            }}
+          >
+            <div className="text-uppercase fw-bold mb-1" style={{ fontSize: '0.68rem', color: isDark ? '#a7f3d0' : '#065f46', letterSpacing: '1px' }}>
+              TOTAL CURD SALES IN KG
+            </div>
+            <AnimatedValue
+              value={curdSaleTotal}
+              unit="Kg"
+              className="value-display my-1 fw-black text-center"
+              style={{ fontSize: '3.1rem', color: '#34d399' }}
+            />
+            <div className="badge bg-success bg-opacity-25 text-success px-3 py-1 mt-1 font-monospace" style={{ fontSize: '0.68rem' }}>
+              CURD + KATTIMORU
+            </div>
+          </div>
+
+          {/* Bottom Container */}
+          <div
+            className="rounded-3 p-2 text-center text-uppercase mt-2"
+            style={{
+              background: isDark ? 'rgba(16,185,129,0.1)' : 'rgba(16,185,129,0.06)',
+              border: '1px solid rgba(16,185,129,0.3)'
+            }}
+          >
+            <div className="text-muted fw-bold" style={{ fontSize: '0.62rem', letterSpacing: '0.5px' }}>PRODUCT CATEGORY</div>
+            <div className="fw-bold font-monospace" style={{ color: isDark ? '#6ee7b7' : '#047857', fontSize: '0.85rem' }}>PACKAGED CURD &amp; MORU</div>
+          </div>
+
+        </div>
+
+        {/* CARD 4: PURCHASE */}
+        <div className="industrial-card card-purchase d-flex flex-column justify-content-between p-3 text-center" style={{ background: isDark ? '#0b1329' : '#ffffff' }}>
+
+          {/* Header */}
+          <div className="d-flex align-items-center justify-content-center gap-2 mb-2">
+            <div className="rounded-circle p-1 d-flex align-items-center justify-content-center" style={{ background: 'rgba(245,158,11,0.15)', border: '1px solid #f59e0b' }}>
+              <ClipboardList size={16} color="#f59e0b" />
+            </div>
+            <div className="d-flex align-items-center gap-1">
+              <span style={{ color: '#f59e0b', fontSize: '0.7rem' }}>••━</span>
+              <span className="fw-black text-uppercase tracking-wider" style={{ fontSize: '0.98rem', color: isDark ? '#ffffff' : '#0f172a', letterSpacing: '1px' }}>PURCHASE</span>
+              <span style={{ color: '#f59e0b', fontSize: '0.7rem' }}>━••</span>
+            </div>
+          </div>
+
+          {/* Central Main Box with ENLARGED Quantity */}
+          <div
+            className="rounded-3 p-3 my-auto d-flex flex-column align-items-center justify-content-center flex-grow-1"
+            style={{
+              background: isDark ? 'rgba(245,158,11,0.06)' : 'rgba(245,158,11,0.04)',
+              border: '1px solid rgba(245,158,11,0.35)',
+              boxShadow: isDark ? '0 0 20px rgba(245,158,11,0.12)' : 'none'
+            }}
+          >
+            <div className="text-uppercase fw-bold mb-1" style={{ fontSize: '0.68rem', color: isDark ? '#fef08a' : '#854d0e', letterSpacing: '1px' }}>
+              OUTSIDE MILK PURCHASED
+            </div>
+            <AnimatedValue
+              value={purchase.quantity}
+              unit="Ltr"
+              className="value-display my-1 fw-black text-center"
+              style={{ fontSize: '3.1rem', color: '#fbbf24' }}
+            />
+            <div className="badge bg-warning bg-opacity-25 text-warning px-3 py-1 mt-1 font-monospace" style={{ fontSize: '0.68rem' }}>
+              OUTSIDE UNIT INFLOW
+            </div>
+          </div>
+
+          {/* Bottom Container: SOURCE UNIT */}
+          <div
+            className="rounded-3 p-2 text-center text-uppercase mt-2"
+            style={{
+              background: isDark ? 'linear-gradient(135deg, rgba(245,158,11,0.18) 0%, rgba(217,119,6,0.12) 100%)' : 'rgba(245,158,11,0.08)',
+              border: '1.5px solid #f59e0b'
+            }}
+          >
+            <div className="text-muted fw-bold" style={{ fontSize: '0.62rem', letterSpacing: '0.5px' }}>SOURCE UNIT</div>
+            <div className="fw-black font-monospace" style={{ color: '#fbbf24', fontSize: '1.15rem', letterSpacing: '1px' }}>
+              {purchase.quantity > 0 ? purchase.unitName : 'N/A'}
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+      {/* ── Bottom 6 Product Cards (Center Aligned, Enlarged Numbers, Glowing Borders) ───────────────────────── */}
+      <div className="section-summary-bottom">
+        {bottomCards.map(card => (
+          <div
+            key={card.id}
+            className="industrial-card d-flex flex-column justify-content-between p-3 text-center"
+            style={{
+              background: card.bgColor,
+              border: `1px solid ${card.borderColor}`,
+              boxShadow: isDark ? `0 0 15px ${card.borderColor}` : 'none'
+            }}
+          >
+            {/* Header */}
+            <div className="d-flex align-items-center justify-content-center gap-1 mb-1">
+              <div className="rounded-circle p-1 d-flex align-items-center justify-content-center" style={{ background: 'rgba(255,255,255,0.08)' }}>
+                {card.icon}
+              </div>
+              <div className="fw-black text-uppercase" style={{ fontSize: '0.74rem', color: isDark ? '#ffffff' : '#0f172a', letterSpacing: '0.5px' }}>
+                {card.title}
+              </div>
+            </div>
+
+            {/* ENLARGED Quantity Display */}
+            <div className="my-auto py-1">
+              <AnimatedValue
+                value={card.value}
+                unit={card.unit}
+                className="value-display my-0 fw-black text-center"
+                style={{
+                  fontSize: '2.2rem',
+                  color: card.color
+                }}
+              />
+            </div>
+
+            {/* Bottom Sub-label Badge */}
+            <div
+              className="rounded-2 py-1 px-2 text-center text-uppercase font-monospace fw-bold"
+              style={{
+                fontSize: '0.62rem',
+                background: 'rgba(0,0,0,0.2)',
+                color: card.color,
+                border: `1px solid ${card.borderColor}`,
+                letterSpacing: '0.5px'
+              }}
+            >
+              {card.subLabel}
+            </div>
+
+          </div>
+        ))}
       </div>
 
     </div>

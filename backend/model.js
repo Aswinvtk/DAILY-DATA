@@ -42,13 +42,26 @@ const DailyOperationsSchema = new mongoose.Schema({
     quantity: { type: Number, default: 0 }
   },
   milkClosingStock: { type: Number, default: 0 },
+
+  // Net Sales extracted from Excel
+  gheeNetSale:     { type: Number, default: 0 },
+  pedaNetSale:     { type: Number, default: 0 },
+  paladaNetSale:   { type: Number, default: 0 },
+  sambaramNetSale: { type: Number, default: 0 },
+  butterNetSale:   { type: Number, default: 0 },
+  uhtMilkNetSale:  { type: Number, default: 0 },
+
+  // Manual Milk Collection (all optional — user can leave blank)
+  totalCollection:   { type: Number, default: 0 },
+  receivedAtDockWyd: { type: Number, default: 0 },
+  receivedAtDockMdy: { type: Number, default: 0 },
   products: [ProductStockSchema], // CREAM & SMP will have single "Total" variant or empty variants list, others will have variants
   
   // Alerts & Updates
   alerts: [{ type: String }],
 
-  // PDF Information
-  pdfName: { type: String, default: '' },
+  // Source File Information (Excel)
+  excelFileName: { type: String, default: '' },
   uploadedBy: { type: String, default: 'Admin' },
   uploadedAt: { type: Date },
 

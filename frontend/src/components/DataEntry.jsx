@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save, Database, Info } from 'lucide-react';
+import { Save, Database, Info } from 'lucide-react';
 
 const DataEntry = ({ isOpen, onClose, initialData, onSave }) => {
   const [formData, setFormData] = useState(null);

@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import Header from './components/Header';
 import SummarySection from './components/SummarySection';
-import RotationSection from './components/RotationSection';
 import Footer from './components/Footer';
 import ReportEntry from './components/ReportEntry';
 
 const API_HOST = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
-const API_BASE = `http://${API_HOST}:5000/api`;
+const API_BASE = `http://${API_HOST}:5050/api`;
 
 const getYesterdayDateStr = () => {
   const d = new Date();
@@ -18,8 +17,6 @@ function App() {
   const [selectedDate, setSelectedDate] = useState(getYesterdayDateStr);
   const [operationsData, setOperationsData] = useState(null);
   const [theme, setTheme] = useState(() => localStorage.getItem('mpod_theme') || 'dark');
-  const [rotatingIndex, setRotatingIndex] = useState(2); // Start on BUTTER (index 2) as in mockup
-  const [rotationCountdown, setRotationCountdown] = useState(20);
   const [refreshCountdown, setRefreshCountdown] = useState(30);
   const [currentDateStr, setCurrentDateStr] = useState('');
   const [liveTimeStr, setLiveTimeStr] = useState('');
@@ -115,20 +112,11 @@ function App() {
     setRefreshCountdown(30);
   }, [selectedDate]);
 
-  // 1-second interval to handle count downs for rotation and refresh
+  // 1-second interval to handle refresh countdown
   useEffect(() => {
-    if (view !== 'dashboard') return; // Pause counts when not on Dashboard
+    if (view !== 'dashboard') return;
 
     const timer = setInterval(() => {
-      // Rotation Countdown
-      setRotationCountdown(prev => {
-        if (prev <= 1) {
-          setRotatingIndex(current => (current + 1) % 5);
-          return 20;
-        }
-        return prev - 1;
-      });
-
       // Auto Refresh Countdown
       setRefreshCountdown(prev => {
         if (prev <= 1) {
@@ -144,11 +132,6 @@ function App() {
 
   const toggleTheme = () => {
     setTheme(prev => (prev === 'light' ? 'dark' : 'light'));
-  };
-
-  const handleSelectProduct = (index) => {
-    setRotatingIndex(index);
-    setRotationCountdown(20);
   };
 
   const handleSaveData = async (updatedData) => {
@@ -186,14 +169,6 @@ function App() {
     }
     return null;
   };
-
-  // Determine if it is Live Mode
-  const isTodaySelected = () => {
-    const todayStr = new Date().toISOString().split('T')[0];
-    return selectedDate === todayStr;
-  };
-
-  const isLive = (isTodaySelected() || selectedDate === '2026-04-28') && view === 'dashboard';
 
   // Check if report status is Draft (to show warning banners)
   const isDraftStatus = operationsData?.status === 'Draft';
@@ -233,7 +208,7 @@ function App() {
         });
         if (res.ok) {
           const updatedDoc = await res.json();
-          setOperationsData(prev => ({ ...updatedDoc, alerts: newAlerts }));
+          setOperationsData({ ...updatedDoc, alerts: newAlerts });
         }
       }
     } catch (e) {
@@ -251,7 +226,6 @@ function App() {
         lastUpdated={lastUpdated}
         onManualRefresh={() => fetchData(selectedDate)}
         onOpenDataEntry={() => setView(view === 'dashboard' ? 'report_entry' : 'dashboard')}
-        isLive={isLive}
         currentDateStr={currentDateStr}
         liveTimeStr={liveTimeStr}
       />
@@ -280,13 +254,6 @@ function App() {
               <>
                 <SummarySection
                   data={operationsData}
-                  theme={theme}
-                />
-                <RotationSection
-                  products={operationsData?.products}
-                  currentIndex={rotatingIndex}
-                  countdown={rotationCountdown}
-                  onSelectProduct={handleSelectProduct}
                   theme={theme}
                 />
               </>

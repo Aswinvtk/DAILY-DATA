@@ -173,32 +173,36 @@ body.scrollable-body {
   display: flex;
   flex-direction: column;
   padding: 16px;
-  gap: 16px;
+  gap: 0;
   overflow: hidden;
-  height: calc(100vh - 120px);
-  /* header + footer accounted */
+  height: calc(100vh - 130px);
 }
 
-.section-summary {
-  flex: 1.15;
-  /* Takes slightly more space to display larger metric fonts */
+/* Summary Wrapper fills the full dashboard area */
+.section-summary-wrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-height: 0;
+  padding: 0;
+}
+
+/* Top 4 Cards */
+.section-summary-top {
+  flex: 1.35;
   display: grid;
-  grid-template-columns: 1.35fr 1fr 1fr 1fr 1fr;
-  gap: 16px;
+  grid-template-columns: 1.7fr 1fr 1fr 1fr;
+  gap: 14px;
   min-height: 0;
 }
 
-.section-rotation {
-  flex: 0.85;
-  /* Rotating stock section */
-  background: var(--card-bg);
-  border: 1px solid var(--border-color);
-  border-radius: 10px;
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  box-shadow: var(--card-shadow);
-  transition: background-color var(--transition-speed), border-color var(--transition-speed);
+/* Bottom 6 Cards */
+.section-summary-bottom {
+  flex: 0.75;
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 14px;
   min-height: 0;
 }
 
@@ -231,10 +235,6 @@ body.scrollable-body {
   background: var(--color-collection);
 }
 
-.industrial-card.card-received::before {
-  background: var(--color-received);
-}
-
 .industrial-card.card-sale::before {
   background: var(--color-sale);
 }
@@ -249,6 +249,56 @@ body.scrollable-body {
 
 .industrial-card.card-stock::before {
   background: var(--color-stock-highlight);
+}
+
+/* Bottom 6 net-sale card accent colors */
+.industrial-card.card-ghee::before {
+  background: #f59e0b;
+}
+
+.industrial-card.card-peda::before {
+  background: #ec4899;
+}
+
+.industrial-card.card-palada::before {
+  background: #8b5cf6;
+}
+
+.industrial-card.card-sambaram::before {
+  background: #06b6d4;
+}
+
+.industrial-card.card-butter-sale::before {
+  background: #f97316;
+}
+
+.industrial-card.card-uht::before {
+  background: #22d3ee;
+}
+
+/* Dark mode borders for bottom 6 */
+[data-theme='dark'] .industrial-card.card-ghee {
+  border-color: rgba(245, 158, 11, 0.3);
+}
+
+[data-theme='dark'] .industrial-card.card-peda {
+  border-color: rgba(236, 72, 153, 0.3);
+}
+
+[data-theme='dark'] .industrial-card.card-palada {
+  border-color: rgba(139, 92, 246, 0.3);
+}
+
+[data-theme='dark'] .industrial-card.card-sambaram {
+  border-color: rgba(6, 182, 212, 0.3);
+}
+
+[data-theme='dark'] .industrial-card.card-butter-sale {
+  border-color: rgba(249, 115, 22, 0.3);
+}
+
+[data-theme='dark'] .industrial-card.card-uht {
+  border-color: rgba(34, 211, 238, 0.3);
 }
 
 /* Glowing shadows in dark mode */
@@ -302,7 +352,7 @@ body.scrollable-body {
   font-weight: 700;
   line-height: 1;
   margin: 10px 0;
-  transition: color var(--transition-speed);
+  /* transition: color var(--transition-speed); */
   letter-spacing: 1px;
 }
 
@@ -661,11 +711,11 @@ body.scrollable-body {
 .ticker-footer {
   background: var(--header-bg);
   color: #fff;
-  height: 38px;
+  height: 48px;
   display: flex;
   align-items: center;
   overflow: hidden;
-  font-size: 0.8rem;
+  font-size: 0.9rem;
   z-index: 10;
   border-top: 1px solid var(--border-color);
 }
