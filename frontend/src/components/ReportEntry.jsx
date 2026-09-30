@@ -1,27 +1,23 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ArrowLeft, Upload, FileText, AlertTriangle, RefreshCw, Save, Check } from 'lucide-react';
+import { 
+  ArrowLeft, Upload, FileText, AlertTriangle, RefreshCw, Save, Check, 
+  Plus, Trash2, Settings, Database, Layers, CheckCircle2, RotateCcw
+} from 'lucide-react';
 
-const ReportEntry = ({ selectedDate, onBackToDashboard, onSave, fetchReportData }) => {
+const ReportEntry = ({ selectedDate, onBackToDashboard, onSave, fetchReportData, initialShowMasterModal, onCloseMasterModal }) => {
   const [reportDate, setReportDate] = useState(selectedDate);
   const [reportStatus, setReportStatus] = useState('Draft');
   const [lastUpdatedTime, setLastUpdatedTime] = useState('N/A');
 
-  // Manual Milk Collection fields (all optional)
-  const [totalCollection, setTotalCollection] = useState(0);
-  const [receivedAtDockWyd, setReceivedAtDockWyd] = useState(0);
-  const [receivedAtDockMdy, setReceivedAtDockMdy] = useState(0);
+  // Manual Milk Collection state
+  const [wydCol, setWydCol] = useState(0);
+  const [mdyCol, setMdyCol] = useState(0);
+  const [outsidePurchases, setOutsidePurchases] = useState([{ sourceUnit: 'MANDYA', quantity: 0 }]);
+  const [stockOuts, setStockOuts] = useState([]);
   const [milkClosingStock, setMilkClosingStock] = useState(0);
-  const [purchase, setPurchase] = useState({ unitName: '', quantity: 0 });
 
-  // Sales Data fields (extracted from Excel / editable)
-  const [milkNetSale, setMilkNetSale] = useState(0);
-  const [curdNetSale, setCurdNetSale] = useState(0);
-  const [gheeNetSale, setGheeNetSale] = useState(0);
-  const [pedaNetSale, setPedaNetSale] = useState(0);
-  const [paladaNetSale, setPaladaNetSale] = useState(0);
-  const [sambaramNetSale, setSambaramNetSale] = useState(0);
-  const [butterNetSale, setButterNetSale] = useState(0);
-  const [uhtMilkNetSale, setUhtMilkNetSale] = useState(0);
+  // MBS Product Groups state (parsed from Excel or fetched from DB)
+  const [mbsProductGroups, setMbsProductGroups] = useState(null);
 
   // Excel extraction state
   const [isDragging, setIsDragging] = useState(false);
@@ -31,8 +27,61 @@ const ReportEntry = ({ selectedDate, onBackToDashboard, onSave, fetchReportData 
   const [showConfirmSubmit, setShowConfirmSubmit] = useState(false);
   const [auditLog, setAuditLog] = useState(null);
 
+  // Subgroup Product Master Mapping Editor state
+  const [showMasterModal, setShowMasterModal] = useState(initialShowMasterModal || false);
+  const [productMasterList, setProductMasterList] = useState([]);
+  const [editingItem, setEditingItem] = useState(null);
+  const [subgrpFilter, setSubgrpFilter] = useState('ALL');
+  const [searchMasterQuery, setSearchMasterQuery] = useState('');
+  const [isAddingProduct, setIsAddingProduct] = useState(false);
+  const [newProduct, setNewProduct] = useState({
+    productCode: '',
+    productName: '',
+    subgrpCode: 1,
+    subgrpName: 'Milk Packets',
+    maingrpCode: 1,
+    maingrpName: 'Milk Packets',
+    shortName: '',
+    groupUnit: 'ltr',
+    groupNos: 1,
+    baseVal: 0.5,
+    groupValue: 0.5,
+    autoCalculateSku: true
+  });
+
+  useEffect(() => {
+    if (initialShowMasterModal !== undefined) {
+      setShowMasterModal(initialShowMasterModal);
+    }
+  }, [initialShowMasterModal]);
+
+  const handleCloseMasterModal = () => {
+    setShowMasterModal(false);
+    if (onCloseMasterModal) onCloseMasterModal();
+  };
+
   const fileInputRef = useRef(null);
   const excelJustExtracted = useRef(false);
+
+  const apiHost = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
+  const apiBase = `http://${apiHost}:5050`;
+
+  // Fetch Product Master Mappings
+  const fetchProductMaster = async () => {
+    try {
+      const res = await fetch(`${apiBase}/api/product-master`);
+      if (res.ok) {
+        const data = await res.json();
+        setProductMasterList(data);
+      }
+    } catch (err) {
+      console.error('Error fetching Product Master:', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchProductMaster();
+  }, []);
 
   // Load existing report data when date changes
   const loadExistingReport = async (dateStr) => {
@@ -45,22 +94,20 @@ const ReportEntry = ({ selectedDate, onBackToDashboard, onSave, fetchReportData 
       setReportStatus(data.status || 'Draft');
       setLastUpdatedTime(data.updatedDate ? new Date(data.updatedDate).toLocaleTimeString() : 'N/A');
 
-      // Manual collection fields
-      setTotalCollection(data.totalCollection || 0);
-      setReceivedAtDockWyd(data.receivedAtDockWyd || 0);
-      setReceivedAtDockMdy(data.receivedAtDockMdy || 0);
+      // Milk Collection details
+      const colDetails = data.milkCollectionDetails || {};
+      setWydCol(colDetails.wyd || data.collectionData?.wyd || 0);
+      setMdyCol(colDetails.mdy || data.collectionData?.mvd || 0);
+      setOutsidePurchases(Array.isArray(colDetails.outsidePurchases) && colDetails.outsidePurchases.length > 0
+        ? colDetails.outsidePurchases
+        : (data.purchase?.quantity > 0 ? [{ sourceUnit: data.purchase.unitName || 'Outside Unit', quantity: data.purchase.quantity }] : [{ sourceUnit: '', quantity: 0 }]));
+      setStockOuts(Array.isArray(colDetails.stockOuts) ? colDetails.stockOuts : []);
       setMilkClosingStock(data.milkClosingStock || 0);
-      setPurchase(data.purchase || { unitName: '', quantity: 0 });
 
-      // Sales Data
-      setMilkNetSale(data.milkSale?.total || 0);
-      setCurdNetSale(data.curdSale?.total || 0);
-      setGheeNetSale(data.gheeNetSale || 0);
-      setPedaNetSale(data.pedaNetSale || 0);
-      setPaladaNetSale(data.paladaNetSale || 0);
-      setSambaramNetSale(data.sambaramNetSale || 0);
-      setButterNetSale(data.butterNetSale || 0);
-      setUhtMilkNetSale(data.uhtMilkNetSale || 0);
+      // MBS Product Groups
+      if (data.mbsProductGroups) {
+        setMbsProductGroups(data.mbsProductGroups);
+      }
 
       setExcelInfo(data.excelFileName ? {
         name: data.excelFileName,
@@ -84,7 +131,122 @@ const ReportEntry = ({ selectedDate, onBackToDashboard, onSave, fetchReportData 
 
   const getTodayDateStr = () => new Date().toISOString().split('T')[0];
 
-  // Drag & drop handlers
+  // Helper calculation for total milk collection
+  const calcOutsideTotal = () => outsidePurchases.reduce((s, item) => s + (Number(item.quantity) || 0), 0);
+  const calcStockOutTotal = () => stockOuts.reduce((s, item) => s + (Number(item.quantity) || 0), 0);
+  const calcTotalCollection = () => Number((Number(wydCol) + Number(mdyCol) + calcOutsideTotal() - calcStockOutTotal()).toFixed(2));
+
+  // Dynamic row additions for Outside Purchases & Stock Outs
+  const addOutsidePurchaseRow = () => setOutsidePurchases([...outsidePurchases, { sourceUnit: '', quantity: 0 }]);
+  const removeOutsidePurchaseRow = (index) => setOutsidePurchases(outsidePurchases.filter((_, i) => i !== index));
+  const updateOutsidePurchase = (index, field, value) => {
+    const updated = [...outsidePurchases];
+    updated[index][field] = field === 'quantity' ? Number(value) || 0 : value;
+    setOutsidePurchases(updated);
+  };
+
+  // Helper function to build default empty product groups from product master list if no excel uploaded
+  const buildDefaultProductGroups = (masterList) => {
+    const groupKeyMap = {
+      'Milk': 'milk',
+      'Curd': 'curd',
+      'Ghee': 'ghee',
+      'Butter': 'butter',
+      'Paneer': 'paneer',
+      'Peda': 'peda',
+      'Palada': 'palada',
+      'Ghee Biscuit': 'gheeBiscuit',
+      'Condensed Milk': 'condensedMilk',
+      'Other': 'other'
+    };
+
+    const result = {
+      milk: { totalOB: 0, totalNetProd: 0, totalInvQty: 0, totalCB: 0, unit: 'L', products: [] },
+      curd: { totalOB: 0, totalNetProd: 0, totalInvQty: 0, totalCB: 0, unit: 'L', products: [] },
+      ghee: { totalOB: 0, totalNetProd: 0, totalInvQty: 0, totalCB: 0, unit: 'L', products: [] },
+      butter: { totalOB: 0, totalNetProd: 0, totalInvQty: 0, totalCB: 0, unit: 'Kg', products: [] },
+      paneer: { totalOB: 0, totalNetProd: 0, totalInvQty: 0, totalCB: 0, unit: 'Kg', products: [] },
+      peda: { totalOB: 0, totalNetProd: 0, totalInvQty: 0, totalCB: 0, unit: 'Kg', products: [] },
+      palada: { totalOB: 0, totalNetProd: 0, totalInvQty: 0, totalCB: 0, unit: 'Kg', products: [] },
+      gheeBiscuit: { totalOB: 0, totalNetProd: 0, totalInvQty: 0, totalCB: 0, unit: 'Kg', products: [] },
+      condensedMilk: { totalOB: 0, totalNetProd: 0, totalInvQty: 0, totalCB: 0, unit: 'Kg', products: [] },
+      other: { totalOB: 0, totalNetProd: 0, totalInvQty: 0, totalCB: 0, unit: 'Kg', products: [] }
+    };
+
+    if (Array.isArray(masterList)) {
+      masterList.forEach(item => {
+        const key = groupKeyMap[item.group] || 'other';
+        if (result[key]) {
+          result[key].products.push({
+            code: item.productCode,
+            name: item.productName,
+            packSize: Number(item.packSizeMultiplier) || 1.0,
+            obPack: 0,
+            obConverted: 0,
+            prodNetPack: 0,
+            prodNetConverted: 0,
+            invQtyPack: 0,
+            invQtyConverted: 0,
+            cbPack: 0,
+            cbConverted: 0
+          });
+        }
+      });
+    }
+    return result;
+  };
+
+  // Field change handler for product varieties in Automatically Fetched Data section
+  const handleProductFieldChange = (groupKey, productIndex, field, value) => {
+    setMbsProductGroups(prev => {
+      if (!prev) return prev;
+      const copy = JSON.parse(JSON.stringify(prev));
+      const group = copy[groupKey];
+      if (!group || !group.products || !group.products[productIndex]) return prev;
+
+      const prod = group.products[productIndex];
+      const numVal = Math.max(0, Number(value) || 0);
+
+      if (field === 'obPack') prod.obPack = numVal;
+      else if (field === 'prodNetPack') prod.prodNetPack = numVal;
+      else if (field === 'invQtyPack') prod.invQtyPack = numVal;
+      else if (field === 'cbPack') prod.cbPack = numVal;
+      else if (field === 'packSize') prod.packSize = Number(value) || 0;
+
+      // Recalculate converted values for this product (SKU x Qty)
+      const factor = Number(prod.packSize) || 1.0;
+      prod.obConverted = Number(((Number(prod.obPack) || 0) * factor).toFixed(2));
+      prod.prodNetConverted = Number(((Number(prod.prodNetPack) || 0) * factor).toFixed(2));
+      prod.invQtyConverted = Number(((Number(prod.invQtyPack) || 0) * factor).toFixed(2));
+      prod.cbConverted = Number(((Number(prod.cbPack) || 0) * factor).toFixed(2));
+
+      // Recalculate group totals
+      let totOB = 0, totNetProd = 0, totInvQty = 0, totCB = 0;
+      group.products.forEach(p => {
+        totOB += Number(p.obConverted) || 0;
+        totNetProd += Number(p.prodNetConverted) || 0;
+        totInvQty += Number(p.invQtyConverted) || 0;
+        totCB += Number(p.cbConverted) || 0;
+      });
+
+      group.totalOB = Number(totOB.toFixed(2));
+      group.totalNetProd = Number(totNetProd.toFixed(2));
+      group.totalInvQty = Number(totInvQty.toFixed(2));
+      group.totalCB = Number(totCB.toFixed(2));
+
+      return copy;
+    });
+  };
+
+  const addStockOutRow = () => setStockOuts([...stockOuts, { destinationUnit: '', quantity: 0 }]);
+  const removeStockOutRow = (index) => setStockOuts(stockOuts.filter((_, i) => i !== index));
+  const updateStockOut = (index, field, value) => {
+    const updated = [...stockOuts];
+    updated[index][field] = field === 'quantity' ? Number(value) || 0 : value;
+    setStockOuts(updated);
+  };
+
+  // Drag & drop handlers for Excel upload
   const handleDragOver = (e) => { e.preventDefault(); setIsDragging(true); };
   const handleDragLeave = () => { setIsDragging(false); };
   const handleDrop = (e) => {
@@ -93,7 +255,7 @@ const ReportEntry = ({ selectedDate, onBackToDashboard, onSave, fetchReportData 
     if (e.dataTransfer.files.length > 0) processFile(e.dataTransfer.files[0]);
   };
 
-  // Process uploaded Excel file
+  // Process uploaded MBS Excel file
   const processFile = (file) => {
     const fileName = (file.name || '').toLowerCase();
     if (!fileName.endsWith('.xlsx') && !fileName.endsWith('.xls')) {
@@ -112,88 +274,70 @@ const ReportEntry = ({ selectedDate, onBackToDashboard, onSave, fetchReportData 
     });
 
     setIsExtracting(true);
-    setUploadProgress(['📤 Uploading Excel to server...', '🔍 Reading Net Grp Qty columns...']);
+    setUploadProgress([
+      '📤 Uploading MBS Product report to server...',
+      '🔑 Matching rows by Product Code...',
+      '⚖️ Applying SKU Pack Size unit conversion (L / Kg)...'
+    ]);
 
     const formData = new FormData();
     formData.append('file', file);
     formData.append('date', reportDate);
 
-    const apiHost = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
     excelJustExtracted.current = true;
 
-    fetch(`http://${apiHost}:5050/api/parse-excel`, {
+    fetch(`${apiBase}/api/parse-excel`, {
       method: 'POST',
       body: formData
     })
       .then(res => res.json())
       .then(result => {
-        const fields = result.extractedFields || [];
-        const progressMsgs = ['✅ Excel processed successfully'];
-        if (fields.includes('milkNetSale')) progressMsgs.push('✅ Milk Net Sale extracted');
-        if (fields.includes('curdNetSale')) progressMsgs.push('✅ Curd Net Sale extracted');
-        if (fields.includes('gheeNetSale')) progressMsgs.push('✅ Ghee Net Sale extracted');
-        if (fields.includes('pedaNetSale')) progressMsgs.push('✅ Peda Net Sale extracted');
-        if (fields.includes('paladaNetSale')) progressMsgs.push('✅ Palada Net Sale extracted');
-        if (fields.includes('sambaramNetSale')) progressMsgs.push('✅ Sambaram Net Sale extracted');
-        if (fields.includes('butterNetSale')) progressMsgs.push('✅ Butter Net Sale extracted');
-        if (fields.includes('uhtMilkNetSale')) progressMsgs.push('✅ UHT Milk Net Sale extracted');
-        if (fields.includes('purchase')) progressMsgs.push('✅ Purchase extracted');
-        if (fields.length === 0) progressMsgs.push('⚠️ No fields auto-extracted — check column names in Excel.');
-        else progressMsgs.push('📝 All extracted values are populated below. Verify or edit if needed.');
-
-        setUploadProgress(progressMsgs);
         setIsExtracting(false);
-        if (result.data) {
+        if (result.success && result.data) {
           const d = result.data;
-          if (d.milkSale) setMilkNetSale(d.milkSale.total || 0);
-          if (d.curdSale) setCurdNetSale(d.curdSale.total || 0);
-          if (d.gheeNetSale != null) setGheeNetSale(d.gheeNetSale);
-          if (d.pedaNetSale != null) setPedaNetSale(d.pedaNetSale);
-          if (d.paladaNetSale != null) setPaladaNetSale(d.paladaNetSale);
-          if (d.sambaramNetSale != null) setSambaramNetSale(d.sambaramNetSale);
-          if (d.butterNetSale != null) setButterNetSale(d.butterNetSale);
-          if (d.uhtMilkNetSale != null) setUhtMilkNetSale(d.uhtMilkNetSale);
-          if (d.purchase) setPurchase(d.purchase);
+          setMbsProductGroups(d.mbsProductGroups);
+          setUploadProgress([
+            '✅ MBS Product Report processed successfully!',
+            '✅ Consolidated 10 Product Groups (Milk, Curd, Ghee, Butter, Paneer, Peda, Palada, Ghee Biscuit, Condensed Milk, Other)',
+            '✅ Individual product variety sales mapped accurately.'
+          ]);
+        } else {
+          setUploadProgress(['⚠️ Extraction completed with missing data. Verify values manually.']);
         }
         excelJustExtracted.current = false;
       })
       .catch(err => {
-        console.error('Excel upload error:', err);
-        setUploadProgress(['⚠️ Excel extraction failed. Please enter all values manually.']);
+        console.error('Excel parse error:', err);
         setIsExtracting(false);
+        setUploadProgress(['❌ Parsing failed. Check backend log or enter data manually.']);
         excelJustExtracted.current = false;
       });
   };
 
-  // Collect payload for backend
+  // Build Payload to Save
   const collectPayload = (status) => ({
     date: reportDate,
     status,
-    totalCollection,
-    receivedAtDockWyd,
-    receivedAtDockMdy,
-    milkClosingStock,
-    purchase,
-    milkSale: { total: milkNetSale, categories: [] },
-    curdSale: { total: curdNetSale, categories: [] },
-    gheeNetSale,
-    pedaNetSale,
-    paladaNetSale,
-    sambaramNetSale,
-    butterNetSale,
-    uhtMilkNetSale,
+    milkCollectionDetails: {
+      wyd: Number(wydCol) || 0,
+      mdy: Number(mdyCol) || 0,
+      outsidePurchases,
+      stockOuts,
+      totalCollection: calcTotalCollection()
+    },
+    totalCollection: calcTotalCollection(),
+    milkClosingStock: Number(milkClosingStock) || 0,
+    mbsProductGroups,
     excelFileName: excelInfo ? excelInfo.name : ''
   });
 
   const handleSaveDraft = () => {
     onSave(collectPayload('Draft'));
-    alert('Report saved as DRAFT. Viewer dashboard will display updated values.');
+    alert('Report saved as DRAFT. Viewer Dashboard has been updated.');
     onBackToDashboard();
   };
 
-  const handleSubmitClick = () => {
-    setShowConfirmSubmit(true);
-  };
+  const handleSubmitClick = () => setShowConfirmSubmit(true);
 
   const handleConfirmSubmit = () => {
     setShowConfirmSubmit(false);
@@ -202,82 +346,255 @@ const ReportEntry = ({ selectedDate, onBackToDashboard, onSave, fetchReportData 
     onBackToDashboard();
   };
 
+  // Subgroup Presets array matching PDF structure
+  const SUBGROUP_PRESETS = [
+    { code: 1, name: 'Milk Packets', maingrpCode: 1, maingrpName: 'Milk Packets', defaultUnit: 'ltr', group: 'Milk' },
+    { code: 2, name: 'Curd', maingrpCode: 1, maingrpName: 'Milk Packets', defaultUnit: 'kgs', group: 'Curd' },
+    { code: 3, name: 'Sambaram', maingrpCode: 1, maingrpName: 'Milk Packets', defaultUnit: 'ltr', group: 'Curd' },
+    { code: 51, name: 'Lassi', maingrpCode: 1, maingrpName: 'Milk Packets', defaultUnit: 'ltr', group: 'Curd' },
+    { code: 4, name: 'Peda', maingrpCode: 2, maingrpName: 'Products', defaultUnit: 'kgs', group: 'Peda' },
+    { code: 5, name: 'Ghee', maingrpCode: 2, maingrpName: 'Products', defaultUnit: 'kgs', group: 'Ghee' },
+    { code: 6, name: 'Butter', maingrpCode: 2, maingrpName: 'Products', defaultUnit: 'kgs', group: 'Butter' },
+    { code: 7, name: 'Palada', maingrpCode: 2, maingrpName: 'Products', defaultUnit: 'kgs', group: 'Palada' },
+    { code: 33, name: 'Paneer', maingrpCode: 2, maingrpName: 'Products', defaultUnit: 'kgs', group: 'Paneer' },
+    { code: 38, name: 'Burfi', maingrpCode: 2, maingrpName: 'Products', defaultUnit: 'kgs', group: 'Other' },
+    { code: 55, name: 'Biscuits', maingrpCode: 2, maingrpName: 'Products', defaultUnit: 'kgs', group: 'Ghee Biscuit' }
+  ];
+
+  // Conversion rule calculator:
+  // Rule 3: For Ghee (subgrp 5): sku = sku * 0.9 (all codes except 18)
+  // Rule 4: For Curd (subgrp 2): sku = sku * 1.03 (for liter items)
+  const calculateGroupValueFrontend = (subgrpCode, productCode, baseVal, groupUnit) => {
+    const codeNum = Number(productCode);
+    const val = Number(baseVal) || 0;
+    const sCode = Number(subgrpCode);
+    const unit = (groupUnit || '').toLowerCase();
+
+    if (sCode === 5) {
+      if (codeNum === 18) return val; // Code 18 Ghee 15kg Tin without 0.9 multiplier
+      return Number((val * 0.9).toFixed(4));
+    }
+    if (sCode === 2) {
+      if (unit === 'ltr' || unit === 'l') {
+        return Number((val * 1.03).toFixed(4));
+      }
+      return val;
+    }
+    return val;
+  };
+
+  // Product Master save / add / delete / reset handlers
+  const handleCreateMasterItem = async (e) => {
+    e.preventDefault();
+    if (!newProduct.productCode || !newProduct.productName) {
+      alert('Product Code and Product Name are required');
+      return;
+    }
+
+    const codeNum = Number(newProduct.productCode);
+    const subCode = Number(newProduct.subgrpCode);
+    const baseVal = Number(newProduct.baseVal !== undefined ? newProduct.baseVal : newProduct.groupValue);
+    const calculatedValue = newProduct.autoCalculateSku 
+      ? calculateGroupValueFrontend(subCode, codeNum, baseVal, newProduct.groupUnit)
+      : Number(newProduct.groupValue);
+
+    const preset = SUBGROUP_PRESETS.find(p => p.code === subCode);
+
+    const payload = {
+      productCode: codeNum,
+      productName: newProduct.productName.trim(),
+      subgrpCode: subCode,
+      subgrpName: newProduct.subgrpName || (preset ? preset.name : 'Milk Packets'),
+      maingrpCode: Number(newProduct.maingrpCode) || (preset ? preset.maingrpCode : 1),
+      maingrpName: newProduct.maingrpName || (preset ? preset.maingrpName : 'Milk Packets'),
+      shortName: (newProduct.shortName || '').trim(),
+      groupUnit: newProduct.groupUnit || 'ltr',
+      groupNos: Number(newProduct.groupNos) || 1,
+      groupValue: calculatedValue,
+      packSizeMultiplier: calculatedValue,
+      group: preset ? preset.group : 'Other',
+      unit: newProduct.groupUnit === 'kgs' ? 'Kg' : 'L'
+    };
+
+    try {
+      const res = await fetch(`${apiBase}/api/product-master`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (res.ok) {
+        setIsAddingProduct(false);
+        setNewProduct({
+          productCode: '',
+          productName: '',
+          subgrpCode: 1,
+          subgrpName: 'Milk Packets',
+          maingrpCode: 1,
+          maingrpName: 'Milk Packets',
+          shortName: '',
+          groupUnit: 'ltr',
+          groupNos: 1,
+          baseVal: 0.5,
+          groupValue: 0.5,
+          autoCalculateSku: true
+        });
+        fetchProductMaster();
+      } else {
+        const errData = await res.json();
+        alert(errData.error || 'Failed to save product master item');
+      }
+    } catch (err) {
+      console.error('Error creating master item:', err);
+    }
+  };
+
+  const handleSaveMasterItem = async (e) => {
+    e.preventDefault();
+    if (!editingItem || !editingItem.productCode || !editingItem.productName) return;
+
+    const codeNum = Number(editingItem.productCode);
+    const subCode = Number(editingItem.subgrpCode);
+    const baseVal = Number(editingItem.baseVal !== undefined ? editingItem.baseVal : editingItem.groupValue);
+    
+    let calcVal = Number(editingItem.groupValue);
+    if (editingItem.autoCalculateSku) {
+      calcVal = calculateGroupValueFrontend(subCode, codeNum, baseVal, editingItem.groupUnit);
+    }
+
+    const payload = {
+      ...editingItem,
+      productCode: codeNum,
+      subgrpCode: subCode,
+      maingrpCode: Number(editingItem.maingrpCode) || (subCode <= 3 || subCode === 51 ? 1 : 2),
+      groupNos: Number(editingItem.groupNos) || 1,
+      groupValue: calcVal,
+      packSizeMultiplier: calcVal
+    };
+
+    try {
+      const res = await fetch(`${apiBase}/api/product-master`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (res.ok) {
+        setEditingItem(null);
+        fetchProductMaster();
+      }
+    } catch (err) {
+      console.error('Failed to save master item:', err);
+    }
+  };
+
+  const handleDeleteMasterItem = async (code) => {
+    if (!window.confirm(`Are you sure you want to delete Product Code ${code}?`)) return;
+    try {
+      const res = await fetch(`${apiBase}/api/product-master/${code}`, { method: 'DELETE' });
+      if (res.ok) {
+        fetchProductMaster();
+      }
+    } catch (err) {
+      console.error('Failed to delete master item:', err);
+    }
+  };
+
+  const handleResetMaster = async () => {
+    if (!window.confirm('Reset all Product Master mappings to factory default product codes?')) return;
+    try {
+      const res = await fetch(`${apiBase}/api/product-master/reset`, { method: 'POST' });
+      if (res.ok) {
+        fetchProductMaster();
+        alert('Product Master mappings reset to default.');
+      }
+    } catch (err) {
+      console.error('Failed to reset master:', err);
+    }
+  };
+
+  // Theme-aware style tokens for consistent contrast
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  const t = {
+    cardBg: isDark ? '#1e293b' : '#ffffff',
+    cardBorder: isDark ? '#334155' : '#cbd5e1',
+    inputBg: isDark ? '#0f172a' : '#ffffff',
+    inputBorder: isDark ? '#475569' : '#cbd5e1',
+    inputText: isDark ? '#e2e8f0' : '#0f172a',
+    labelText: isDark ? '#94a3b8' : '#334155',
+    headerText: isDark ? '#f8fafc' : '#0f172a',
+    mutedText: isDark ? '#94a3b8' : '#64748b',
+    tableRowBg: isDark ? '#1e293b' : '#f8fafc',
+    tableBorder: isDark ? '#334155' : '#e2e8f0',
+    successText: isDark ? '#4ade80' : '#166534',
+    infoText: isDark ? '#38bdf8' : '#0369a1',
+    sectionHeaderBg: isDark ? '#0f172a' : '#f1f5f9',
+    pillBg: isDark ? '#334155' : '#e2e8f0',
+    pillText: isDark ? '#f8fafc' : '#0f172a',
+  };
+
   return (
-    <div className="report-entry-page container-fluid p-4">
+    <div className="report-entry-page container-fluid" style={{ height: 'calc(100vh - 65px)', display: 'flex', flexDirection: 'column', overflow: 'hidden', padding: '0.75rem 1rem' }}>
 
-      {/* 1. Header Banner */}
-      <div className="d-flex align-items-center justify-content-between mb-4 border-bottom pb-3">
-        <div className="d-flex align-items-center gap-2">
-          <button onClick={onBackToDashboard} className="btn btn-outline-secondary d-flex align-items-center gap-1">
-            <ArrowLeft size={16} /> Back
-          </button>
-          <div className="ms-2">
-            <h2 className="mb-0 fw-bold" style={{ fontSize: '1.5rem' }}>MILMA WAYANAD DAIRY</h2>
-            <div className="text-muted" style={{ fontSize: '0.8rem' }}>Daily Operations Data Entry &amp; Verification</div>
+      {/* Main Data Entry Sections — Single Screen Screenshot Layout */}
+      <div className="row g-2 flex-grow-1" style={{ minHeight: 0, overflow: 'hidden' }}>
+
+        {/* LEFT COLUMN: TOP CONTROLS + MILK COLLECTION + ACTION BUTTONS */}
+        <div className="col-lg-4 col-md-5 d-flex flex-column" style={{ height: '100%', minHeight: 0 }}>
+          
+          {/* Row 1: Product Master Button & Filename Status Badge */}
+          <div className="d-flex align-items-center justify-content-between mb-2 flex-shrink-0">
+            <button 
+              className="btn btn-outline-primary btn-sm py-1 px-2 d-flex align-items-center gap-1 fw-bold"
+              onClick={() => setShowMasterModal(true)}
+              style={{ fontSize: '0.75rem' }}
+            >
+              <Settings size={14} /> Product Master Mappings
+            </button>
+
+            {excelInfo ? (
+              <span className="text-truncate py-1 px-2 font-monospace rounded-2 fw-bold" style={{ maxWidth: '180px', fontSize: '0.68rem', background: t.pillBg, color: t.pillText, border: `1px solid ${t.cardBorder}` }} title={excelInfo.name}>
+                📄 {excelInfo.name}
+              </span>
+            ) : (
+              <span className={`badge px-2 py-1 fw-bold text-uppercase ${reportStatus === 'Submitted' ? 'bg-success' : reportStatus === 'Updated' ? 'bg-primary' : ''}`} style={{ fontSize: '0.7rem', ...(reportStatus === 'Draft' ? { background: '#fbbf24', color: '#0f172a' } : {}) }}>
+                STATUS: {reportStatus}
+              </span>
+            )}
           </div>
-        </div>
 
-        <div className="d-flex align-items-center gap-3">
-          <div className="text-end">
-            <span className={`badge px-3 py-2 fw-bold text-uppercase ${reportStatus === 'Submitted' ? 'bg-success' : reportStatus === 'Updated' ? 'bg-primary' : 'bg-warning text-dark'
-              }`}>
-              Status: {reportStatus}
-            </span>
-            <div className="text-muted mt-1" style={{ fontSize: '0.7rem' }}>Last Updated: {lastUpdatedTime}</div>
-          </div>
-        </div>
-      </div>
-
-      {/* 2. Top Control Panel: Date selection & Excel Upload */}
-      <div className="row g-4 mb-4">
-        <div className="col-md-5">
-          <div className="card h-100 border-secondary" style={{ backgroundColor: 'var(--card-bg)' }}>
-            <div className="card-body d-flex flex-column justify-content-between">
-              <div>
-                <label className="form-label fw-bold">📅 Select Report Date</label>
+          {/* Row 2: Back Button & Operations Date Picker (Expanded height & padding) */}
+          <div className="rounded-3 p-2 px-3 mb-2 flex-shrink-0 shadow-sm" style={{ background: t.sectionHeaderBg, border: `1px solid ${t.cardBorder}` }}>
+            <div className="d-flex align-items-center justify-content-between gap-2 py-1">
+              <button onClick={onBackToDashboard} className="btn btn-sm px-3 py-1 d-flex align-items-center gap-1 fw-bold" style={{ fontSize: '0.8rem', background: 'transparent', border: `1px solid ${t.cardBorder}`, color: t.headerText }}>
+                <ArrowLeft size={15} /> Back
+              </button>
+              <div className="d-flex align-items-center gap-2">
+                <label className="fw-bold mb-0" style={{ fontSize: '0.8rem', color: t.headerText }}>📅 Operations Date:</label>
                 <input
                   type="date"
                   max={getTodayDateStr()}
                   value={reportDate}
                   onChange={(e) => setReportDate(e.target.value)}
-                  className="form-control mb-3"
+                  className="form-control form-control-sm py-1 px-2 font-monospace"
+                  style={{ fontSize: '0.85rem', height: '34px', width: '145px', background: t.inputBg, color: t.inputText, border: `1px solid ${t.inputBorder}` }}
                 />
-
-                {excelInfo ? (
-                  <div className="alert alert-info py-2 px-3 border border-info mb-0">
-                    <h6 className="fw-bold mb-1 d-flex align-items-center gap-2" style={{ fontSize: '0.85rem' }}>
-                      <FileText size={15} /> Uploaded Excel File
-                    </h6>
-                    <div style={{ fontSize: '0.72rem' }} className="font-monospace">
-                      <div>File: {excelInfo.name}</div>
-                      <div>Uploaded By: {excelInfo.uploadedBy}</div>
-                      <div>Uploaded Time: {excelInfo.uploadedAt}</div>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="text-muted" style={{ fontSize: '0.75rem' }}>
-                    No Excel file uploaded yet for this date. Upload file to auto-extract sales data.
-                  </div>
-                )}
               </div>
-
-              {auditLog && auditLog.numberOfUpdates > 0 && (
-                <div className="border-top mt-3 pt-2" style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
-                  <strong>Audit Log:</strong> Created by {auditLog.createdBy} on {new Date(auditLog.createdDate).toLocaleDateString()}. Updated {auditLog.numberOfUpdates} time(s).
-                </div>
-              )}
             </div>
           </div>
-        </div>
 
-        {/* Drag and Drop Zone */}
-        <div className="col-md-7">
+          {/* Row 3: Upload MBS Product Report Box — Distinct dashed dropzone */}
           <div
-            className={`drag-drop-zone h-100 d-flex flex-column align-items-center justify-content-center ${isDragging ? 'drag-active' : ''}`}
+            className={`flex-shrink-0 d-flex flex-column align-items-center justify-content-center p-3 rounded-3 mb-2 ${isDragging ? 'drag-active' : ''}`}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
             onClick={() => fileInputRef.current.click()}
+            style={{ 
+              cursor: 'pointer', 
+              border: `2px dashed ${isDark ? '#475569' : '#94a3b8'}`, 
+              background: isDark ? 'rgba(59,130,246,0.06)' : 'rgba(59,130,246,0.04)', 
+              minHeight: '62px',
+              transition: 'border-color 0.2s, background 0.2s'
+            }}
           >
             <input
               type="file"
@@ -287,223 +604,417 @@ const ReportEntry = ({ selectedDate, onBackToDashboard, onSave, fetchReportData 
               className="d-none"
             />
             {isExtracting ? (
-              <div className="text-center">
-                <RefreshCw size={36} className="text-primary spinner mb-2" style={{ animation: 'spin 2s linear infinite' }} />
-                <h6 className="fw-bold mb-2">Reading Excel File...</h6>
-                <div className="text-start bg-dark p-2 rounded text-success font-monospace" style={{ fontSize: '0.7rem', width: '260px' }}>
-                  {uploadProgress.map((p, i) => <div key={i}>{p}</div>)}
-                </div>
+              <div className="d-flex align-items-center gap-2 py-1" style={{ fontSize: '0.8rem', color: t.infoText }}>
+                <RefreshCw size={18} className="spinner" style={{ animation: 'spin 2s linear infinite' }} />
+                <span className="fw-bold">Processing MBS Excel File...</span>
               </div>
             ) : (
-              <>
-                <Upload size={32} className="text-muted mb-2" />
-                <h6 className="fw-bold mb-1">📊 Upload Wayanad Sales Excel (.xlsx / .xls)</h6>
-                <p className="text-muted mb-0" style={{ fontSize: '0.72rem' }}>
-                  Drag &amp; Drop Excel file here or <strong>Click to Browse</strong>
-                </p>
-                {uploadProgress.length > 0 && (
-                  <div className="mt-2 text-start bg-dark p-2 rounded text-success font-monospace" style={{ fontSize: '0.65rem', width: '280px' }}>
-                    {uploadProgress.map((p, i) => <div key={i}>{p}</div>)}
-                  </div>
-                )}
-              </>
+              <div className="text-center">
+                <div className="d-flex align-items-center justify-content-center gap-2 fw-bold mb-1" style={{ fontSize: '0.82rem', color: t.headerText }}>
+                  <Upload size={18} style={{ color: t.infoText }} />
+                  <span>Upload MBS Product Report (.xls / .xlsx)</span>
+                </div>
+                <div style={{ fontSize: '0.72rem', color: t.mutedText }}>
+                  Drag &amp; Drop MBS report file here or <strong>Click to Browse</strong>
+                </div>
+              </div>
             )}
           </div>
-        </div>
-      </div>
 
-      {/* 3. Main Data Entry & Verification Sections */}
-      <div className="row g-4 mb-4">
-
-        {/* Section 1: Manual Milk Collection & Purchase */}
-        <div className="col-lg-6">
-          <div className="card border-secondary h-100" style={{ backgroundColor: 'var(--card-bg)' }}>
-            <div className="card-header bg-dark bg-opacity-25 fw-bold" style={{ fontSize: '0.9rem' }}>
-              🥛 Milk Collection &amp; Purchase (Manual Entry / Verification)
+          {/* Row 4: Milk Collection Entry Card (Stretches cleanly to fill space) */}
+          <div className="card shadow-sm flex-grow-1 d-flex flex-column mb-2" style={{ background: t.cardBg, border: `1px solid ${t.cardBorder}`, overflow: 'hidden' }}>
+            <div className="fw-bold d-flex justify-content-between align-items-center py-2 px-3 flex-shrink-0" style={{ fontSize: '0.85rem', background: t.sectionHeaderBg, borderBottom: `1px solid ${t.cardBorder}`, color: t.headerText }}>
+              <span>🥛 Milk Collection</span>
+              <span className="font-monospace rounded-2 py-1 px-2" style={{ fontSize: '0.75rem', background: isDark ? 'rgba(74,222,128,0.15)' : 'rgba(22,101,52,0.1)', color: t.successText, fontWeight: 700 }}>
+                {calcTotalCollection().toLocaleString()} Ltr
+              </span>
             </div>
-            <div className="card-body">
-              <p className="text-muted mb-3" style={{ fontSize: '0.75rem' }}>
-                Enter milk collection values. These fields are optional and will display directly on the top section of the dashboard viewer.
-              </p>
-              <div className="row g-3">
-                <div className="col-12">
-                  <label className="form-label fw-bold" style={{ fontSize: '0.8rem' }}>Total Collection (Ltr)</label>
+
+            <div className="card-body p-3 overflow-auto flex-grow-1 d-flex flex-column" style={{ fontSize: '0.8rem' }}>
+              
+              {/* Total Collection Banner */}
+              <div className="p-2 rounded-2 mb-3 text-center flex-shrink-0" style={{ background: isDark ? 'rgba(74,222,128,0.08)' : 'rgba(22,101,52,0.06)', border: `1px solid ${isDark ? 'rgba(74,222,128,0.3)' : 'rgba(22,101,52,0.25)'}` }}>
+                <div className="text-uppercase fw-bold" style={{ fontSize: '0.68rem', color: t.successText }}>TOTAL COLLECTION</div>
+                <div className="fw-black font-monospace" style={{ fontSize: '1.4rem', color: t.successText }}>
+                  {calcTotalCollection().toLocaleString()} <span style={{ fontSize: '0.8rem' }}>Ltr</span>
+                </div>
+              </div>
+
+              {/* WYD & MDY Inputs */}
+              <div className="row g-2 mb-3 flex-shrink-0">
+                <div className="col-6">
+                  <label className="form-label fw-bold mb-1" style={{ fontSize: '0.75rem', color: t.labelText }}>WYD (Ltr)</label>
                   <input
                     type="number"
-                    value={totalCollection || ''}
-                    onChange={(e) => setTotalCollection(Number(e.target.value) || 0)}
-                    className="form-control"
-                    placeholder="e.g. 182000"
-                  />
-                </div>
-                <div className="col-sm-6">
-                  <label className="form-label text-muted" style={{ fontSize: '0.75rem' }}>Received at Dock – WYD (Ltr)</label>
-                  <input
-                    type="number"
-                    value={receivedAtDockWyd || ''}
-                    onChange={(e) => setReceivedAtDockWyd(Number(e.target.value) || 0)}
-                    className="form-control"
-                    placeholder="e.g. 124000"
-                  />
-                </div>
-                <div className="col-sm-6">
-                  <label className="form-label text-muted" style={{ fontSize: '0.75rem' }}>Received at Dock – MDY (Ltr)</label>
-                  <input
-                    type="number"
-                    value={receivedAtDockMdy || ''}
-                    onChange={(e) => setReceivedAtDockMdy(Number(e.target.value) || 0)}
-                    className="form-control"
-                    placeholder="e.g. 58000"
-                  />
-                </div>
-                <div className="col-12">
-                  <label className="form-label fw-bold" style={{ fontSize: '0.8rem' }}>Milk Closing Stock (Ltr)</label>
-                  <input
-                    type="number"
-                    value={milkClosingStock || ''}
-                    onChange={(e) => setMilkClosingStock(Number(e.target.value) || 0)}
-                    className="form-control"
-                    placeholder="e.g. 136150"
-                  />
-                  <div className="text-muted" style={{ fontSize: '0.68rem' }}>
-                    * Appears as sub-line under the Milk Collection card on the dashboard.
-                  </div>
-                </div>
-                <div className="col-sm-6">
-                  <label className="form-label text-muted" style={{ fontSize: '0.75rem' }}>Purchase Source Unit</label>
-                  <input
-                    type="text"
-                    value={purchase.unitName}
-                    onChange={(e) => setPurchase({ ...purchase, unitName: e.target.value })}
-                    className="form-control"
-                    placeholder="e.g. MANDYA"
-                  />
-                </div>
-                <div className="col-sm-6">
-                  <label className="form-label text-muted" style={{ fontSize: '0.75rem' }}>Purchase Quantity (Ltr)</label>
-                  <input
-                    type="number"
-                    value={purchase.quantity || ''}
-                    onChange={(e) => setPurchase({ ...purchase, quantity: Number(e.target.value) || 0 })}
-                    className="form-control"
+                    value={wydCol || ''}
+                    onChange={(e) => setWydCol(Number(e.target.value) || 0)}
+                    className="form-control form-control-sm font-monospace py-1"
                     placeholder="0"
+                    style={{ background: t.inputBg, color: t.inputText, border: `1px solid ${t.inputBorder}` }}
+                  />
+                </div>
+                <div className="col-6">
+                  <label className="form-label fw-bold mb-1" style={{ fontSize: '0.75rem', color: t.labelText }}>MDY (Ltr)</label>
+                  <input
+                    type="number"
+                    value={mdyCol || ''}
+                    onChange={(e) => setMdyCol(Number(e.target.value) || 0)}
+                    className="form-control form-control-sm font-monospace py-1"
+                    placeholder="0"
+                    style={{ background: t.inputBg, color: t.inputText, border: `1px solid ${t.inputBorder}` }}
                   />
                 </div>
               </div>
+
+              {/* Outside Purchases List */}
+              <div className="border-top pt-2 mb-3 flex-shrink-0">
+                <div className="d-flex align-items-center justify-content-between mb-1">
+                  <span className="fw-bold text-uppercase" style={{ fontSize: '0.75rem', color: t.headerText }}>Outside Purchases</span>
+                  <button type="button" onClick={addOutsidePurchaseRow} className="btn btn-sm py-0 px-2" style={{ fontSize: '0.7rem', background: 'transparent', border: `1px solid ${t.cardBorder}`, color: t.headerText }}>
+                    <Plus size={13} /> Add
+                  </button>
+                </div>
+                {outsidePurchases.map((row, idx) => (
+                  <div key={idx} className="d-flex gap-1 align-items-center mb-1">
+                    <input
+                      type="text"
+                      placeholder="Source Unit"
+                      value={row.sourceUnit}
+                      onChange={(e) => updateOutsidePurchase(idx, 'sourceUnit', e.target.value)}
+                      className="form-control form-control-sm py-1 px-2"
+                      style={{ fontSize: '0.75rem', background: t.inputBg, color: t.inputText, border: `1px solid ${t.inputBorder}` }}
+                    />
+                    <input
+                      type="number"
+                      placeholder="Qty (Ltr)"
+                      value={row.quantity || ''}
+                      onChange={(e) => updateOutsidePurchase(idx, 'quantity', e.target.value)}
+                      className="form-control form-control-sm w-28 font-monospace py-1 px-2"
+                      style={{ fontSize: '0.75rem', background: t.inputBg, color: t.inputText, border: `1px solid ${t.inputBorder}` }}
+                    />
+                    {outsidePurchases.length > 1 && (
+                      <button type="button" onClick={() => removeOutsidePurchaseRow(idx)} className="btn btn-sm btn-outline-danger p-1">
+                        <Trash2 size={13} />
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {/* Stock Out List */}
+              <div className="border-top pt-2 mb-3 flex-shrink-0">
+                <div className="d-flex align-items-center justify-content-between mb-1">
+                  <span className="fw-bold text-uppercase" style={{ fontSize: '0.75rem', color: isDark ? '#f87171' : '#dc2626' }}>Stock Out</span>
+                  <button type="button" onClick={addStockOutRow} className="btn btn-sm btn-outline-danger py-0 px-2" style={{ fontSize: '0.7rem' }}>
+                    <Plus size={13} /> Add
+                  </button>
+                </div>
+                {stockOuts.length > 0 ? (
+                  stockOuts.map((row, idx) => (
+                    <div key={idx} className="d-flex gap-1 align-items-center mb-1">
+                      <input
+                        type="text"
+                        placeholder="Destination Unit"
+                        value={row.destinationUnit}
+                        onChange={(e) => updateStockOut(idx, 'destinationUnit', e.target.value)}
+                        className="form-control form-control-sm py-1 px-2"
+                        style={{ fontSize: '0.75rem', background: t.inputBg, color: t.inputText, border: `1px solid ${t.inputBorder}` }}
+                      />
+                      <input
+                        type="number"
+                        placeholder="Qty (Ltr)"
+                        value={row.quantity || ''}
+                        onChange={(e) => updateStockOut(idx, 'quantity', e.target.value)}
+                        className="form-control form-control-sm w-28 font-monospace py-1 px-2"
+                        style={{ fontSize: '0.75rem', background: t.inputBg, color: t.inputText, border: `1px solid ${t.inputBorder}` }}
+                      />
+                      <button type="button" onClick={() => removeStockOutRow(idx)} className="btn btn-sm btn-outline-danger p-1">
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-muted fst-italic" style={{ fontSize: '0.72rem' }}>None recorded.</div>
+                )}
+              </div>
+
+              {/* Closing Stock */}
+              <div className="border-top pt-2 mt-auto">
+                <label className="form-label fw-bold mb-1" style={{ fontSize: '0.75rem', color: t.labelText }}>Milk Closing Stock (Ltr)</label>
+                <input
+                  type="number"
+                  value={milkClosingStock || ''}
+                  onChange={(e) => setMilkClosingStock(Number(e.target.value) || 0)}
+                  className="form-control form-control-sm font-monospace py-1"
+                  placeholder="0"
+                  style={{ background: t.inputBg, color: t.inputText, border: `1px solid ${t.inputBorder}` }}
+                />
+              </div>
+
+            </div>
+          </div>
+
+          {/* Row 5: Action Buttons Panel — Proper hierarchy: Submit=Primary, Draft=Secondary, Cancel=Ghost */}
+          <div className="rounded-3 p-2 px-3 flex-shrink-0 d-flex flex-row justify-content-between align-items-center gap-2 shadow-sm" style={{ background: t.sectionHeaderBg, border: `1px solid ${t.cardBorder}` }}>
+            <button type="button" onClick={onBackToDashboard} className="btn btn-sm px-3 py-1 fw-bold" style={{ background: 'transparent', border: `1px solid ${t.cardBorder}`, color: t.mutedText, fontSize: '0.78rem' }}>
+              Cancel
+            </button>
+            <div className="d-flex gap-2">
+              <button type="button" onClick={handleSaveDraft} className="btn btn-sm px-3 py-1 fw-bold d-flex align-items-center gap-1" style={{ background: 'transparent', border: `1px solid ${t.cardBorder}`, color: t.headerText, fontSize: '0.78rem' }}>
+                <Save size={14} /> Save Draft
+              </button>
+              <button type="button" onClick={handleSubmitClick} className="btn btn-sm px-3 py-1 fw-bold d-flex align-items-center gap-1" style={{ background: '#0059a5', color: '#ffffff', border: '1px solid rgba(255,255,255,0.15)', fontSize: '0.78rem' }}>
+                <Check size={14} /> Submit Report
+              </button>
+            </div>
+          </div>
+
+        </div>
+
+        {/* RIGHT COLUMN: AUTOMATICALLY FETCHED DATA (FULL VERTICAL HEIGHT) */}
+        <div className="col-lg-8 col-md-7 d-flex flex-column" style={{ height: '100%', minHeight: 0 }}>
+          <div className="card shadow-sm flex-grow-1 d-flex flex-column" style={{ background: t.cardBg, border: `1px solid ${t.cardBorder}`, overflow: 'hidden' }}>
+            <div className="fw-bold d-flex align-items-center justify-content-between py-2 px-3 flex-shrink-0" style={{ background: t.sectionHeaderBg, borderBottom: `1px solid ${t.cardBorder}`, color: t.headerText }}>
+              <span className="d-flex align-items-center gap-2" style={{ fontSize: '0.88rem' }}>
+                <Layers size={18} style={{ color: t.infoText }} />
+                Automatically Fetched Data (MBS Product Groups)
+              </span>
+              <div className="d-flex gap-2">
+                <button 
+                  type="button" 
+                  className="btn btn-sm btn-outline-warning py-0 px-2 fw-bold d-flex align-items-center gap-1" 
+                  style={{ fontSize: '0.72rem' }}
+                  onClick={() => setShowMasterModal(true)}
+                >
+                  <Database size={13} /> Product Mapping & Rules
+                </button>
+                {!mbsProductGroups && (
+                  <button 
+                    type="button" 
+                    className="btn btn-sm btn-outline-primary py-0 px-2" 
+                    style={{ fontSize: '0.72rem' }}
+                    onClick={() => setMbsProductGroups(buildDefaultProductGroups(productMasterList))}
+                  >
+                    Load Product Template
+                  </button>
+                )}
+                <span className="font-monospace rounded-2 py-1 px-2" style={{ fontSize: '0.7rem', background: t.pillBg, color: t.pillText }}>
+                  Editable Values
+                </span>
+              </div>
+            </div>
+
+            {/* CARD BODY SCROLLS INTERNALLY FROM TOP TO BOTTOM */}
+            <div className="card-body p-3 overflow-auto flex-grow-1">
+              {mbsProductGroups ? (
+                <div className="d-flex flex-column gap-4">
+                  {Object.entries(mbsProductGroups).map(([gKey, gVal]) => {
+                    const groupTitleNames = {
+                      milk: 'Milk Group',
+                      curd: 'Curd Group',
+                      ghee: 'Ghee Group',
+                      butter: 'Butter Group',
+                      paneer: 'Paneer Group',
+                      peda: 'Peda Group',
+                      palada: 'Palada Group',
+                      gheeBiscuit: 'Ghee Biscuit Group',
+                      condensedMilk: 'Condensed Milk Group',
+                      other: 'Other Products Group'
+                    };
+                    const groupTitle = groupTitleNames[gKey] || `${gKey.toUpperCase()} Group`;
+
+                    // Calculate total excel packs for summary display
+                    const calcTotalPacks = (field) => (gVal.products || []).reduce((sum, p) => sum + (Number(p[field]) || 0), 0);
+                    const totalOBPacks = calcTotalPacks('obPack');
+                    const totalProdPacks = calcTotalPacks('prodNetPack');
+                    const totalInvPacks = calcTotalPacks('invQtyPack');
+                    const totalCBPacks = calcTotalPacks('cbPack');
+
+                    return (
+                      <div key={gKey} className="mbs-group-card rounded-3 p-3 mb-3">
+                        {/* Group Title Header — Neutral colors */}
+                        <div className="d-flex align-items-center justify-content-between pb-2 mb-3" style={{ borderBottom: `1px solid ${t.tableBorder}` }}>
+                          <h6 className="fw-black text-uppercase mb-0 d-flex align-items-center gap-2" style={{ color: t.headerText, fontSize: '0.92rem' }}>
+                            <span>{groupTitle}</span>
+                            <span className="font-monospace rounded-2 py-1 px-2" style={{ fontSize: '0.65rem', background: t.pillBg, color: t.pillText }}>
+                              Unit: {gVal.unit}
+                            </span>
+                          </h6>
+                          <span style={{ fontSize: '0.75rem', fontWeight: 600, color: t.mutedText }}>
+                            {(gVal.products || []).length} Product Varieties
+                          </span>
+                        </div>
+
+                        {/* Product Varieties List */}
+                        <div className="d-flex flex-column gap-3 mb-3">
+                          {(gVal.products || []).length > 0 ? (
+                            gVal.products.map((prod, pIdx) => (
+                              <div key={prod.code || pIdx} className="variety-card-box p-3 rounded-3 shadow-sm">
+                                {/* Variety Header */}
+                                <div className="d-flex align-items-center justify-content-between mb-2 pb-1" style={{ borderBottom: `1px solid ${t.tableBorder}` }}>
+                                  <span className="fw-bold" style={{ fontSize: '0.86rem', color: t.headerText }}>
+                                    Variety {pIdx + 1}: <span className="font-monospace" style={{ color: t.infoText }}>[{prod.code}]</span> {prod.name}
+                                  </span>
+                                  <div className="d-flex align-items-center gap-2" style={{ fontSize: '0.8rem' }}>
+                                    <span className="fw-semibold" style={{ color: t.mutedText }}>SKU Factor:</span>
+                                    <input
+                                      type="number"
+                                      step="0.001"
+                                      value={prod.packSize}
+                                      onChange={(e) => handleProductFieldChange(gKey, pIdx, 'packSize', e.target.value)}
+                                      className="form-control form-control-sm font-monospace py-0 px-2 text-center fw-bold"
+                                      style={{ width: '75px', fontSize: '0.8rem', height: '28px', background: t.inputBg, color: t.inputText, border: `1px solid ${t.inputBorder}` }}
+                                      title="SKU Pack Size Multiplier factor"
+                                    />
+                                  </div>
+                                </div>
+
+                                {/* Variety Metrics Grid (OB, Production, Inv Qty, CB) */}
+                                <div className="table-responsive">
+                                  <table className="table table-sm align-middle mb-0" style={{ fontSize: '0.8rem', borderCollapse: 'collapse' }}>
+                                    <thead>
+                                      <tr className="text-uppercase" style={{ fontSize: '0.72rem', letterSpacing: '0.5px' }}>
+                                        <th style={{ width: '22%', color: t.labelText, borderBottom: `2px solid ${t.tableBorder}`, padding: '6px 8px' }}>Metric</th>
+                                        <th style={{ width: '28%', color: t.labelText, borderBottom: `2px solid ${t.tableBorder}`, padding: '6px 8px' }}>Excel Qty (Packs)</th>
+                                        <th style={{ width: '20%', textAlign: 'center', color: t.labelText, borderBottom: `2px solid ${t.tableBorder}`, padding: '6px 8px' }}>SKU Factor</th>
+                                        <th style={{ width: '30%', textAlign: 'right', color: t.labelText, borderBottom: `2px solid ${t.tableBorder}`, padding: '6px 8px' }}>SKU × Qty ({gVal.unit})</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {/* OB Row */}
+                                      <tr style={{ background: t.tableRowBg }}>
+                                        <td className="fw-bold text-uppercase" style={{ color: t.headerText, borderBottom: `1px solid ${t.tableBorder}`, padding: '6px 8px' }}>OB</td>
+                                        <td style={{ borderBottom: `1px solid ${t.tableBorder}`, padding: '4px 8px' }}>
+                                          <input
+                                            type="number"
+                                            value={prod.obPack}
+                                            onChange={(e) => handleProductFieldChange(gKey, pIdx, 'obPack', e.target.value)}
+                                            className="form-control form-control-sm font-monospace py-0 px-2"
+                                            style={{ fontSize: '0.82rem', height: '28px', background: t.inputBg, color: t.inputText, border: `1px solid ${t.inputBorder}` }}
+                                          />
+                                        </td>
+                                        <td className="font-monospace text-center fw-bold" style={{ color: t.infoText, borderBottom: `1px solid ${t.tableBorder}`, padding: '6px 8px' }}>{prod.packSize}</td>
+                                        <td className="font-monospace fw-bold text-end" style={{ fontSize: '0.86rem', color: t.successText, borderBottom: `1px solid ${t.tableBorder}`, padding: '6px 8px' }}>{Number(prod.obConverted || 0).toLocaleString()} {gVal.unit}</td>
+                                      </tr>
+                                      {/* Production Row */}
+                                      <tr>
+                                        <td className="fw-bold text-uppercase" style={{ color: t.headerText, borderBottom: `1px solid ${t.tableBorder}`, padding: '6px 8px' }}>PRODUCTION</td>
+                                        <td style={{ borderBottom: `1px solid ${t.tableBorder}`, padding: '4px 8px' }}>
+                                          <input
+                                            type="number"
+                                            value={prod.prodNetPack}
+                                            onChange={(e) => handleProductFieldChange(gKey, pIdx, 'prodNetPack', e.target.value)}
+                                            className="form-control form-control-sm font-monospace py-0 px-2"
+                                            style={{ fontSize: '0.82rem', height: '28px', background: t.inputBg, color: t.inputText, border: `1px solid ${t.inputBorder}` }}
+                                          />
+                                        </td>
+                                        <td className="font-monospace text-center fw-bold" style={{ color: t.infoText, borderBottom: `1px solid ${t.tableBorder}`, padding: '6px 8px' }}>{prod.packSize}</td>
+                                        <td className="font-monospace fw-bold text-end" style={{ fontSize: '0.86rem', color: t.successText, borderBottom: `1px solid ${t.tableBorder}`, padding: '6px 8px' }}>{Number(prod.prodNetConverted || 0).toLocaleString()} {gVal.unit}</td>
+                                      </tr>
+                                      {/* Inv Qty Row */}
+                                      <tr style={{ background: t.tableRowBg }}>
+                                        <td className="fw-bold text-uppercase" style={{ color: t.headerText, borderBottom: `1px solid ${t.tableBorder}`, padding: '6px 8px' }}>INV QTY</td>
+                                        <td style={{ borderBottom: `1px solid ${t.tableBorder}`, padding: '4px 8px' }}>
+                                          <input
+                                            type="number"
+                                            value={prod.invQtyPack}
+                                            onChange={(e) => handleProductFieldChange(gKey, pIdx, 'invQtyPack', e.target.value)}
+                                            className="form-control form-control-sm font-monospace py-0 px-2"
+                                            style={{ fontSize: '0.82rem', height: '28px', background: t.inputBg, color: t.inputText, border: `1px solid ${t.inputBorder}` }}
+                                          />
+                                        </td>
+                                        <td className="font-monospace text-center fw-bold" style={{ color: t.infoText, borderBottom: `1px solid ${t.tableBorder}`, padding: '6px 8px' }}>{prod.packSize}</td>
+                                        <td className="font-monospace fw-bold text-end" style={{ fontSize: '0.86rem', color: t.successText, borderBottom: `1px solid ${t.tableBorder}`, padding: '6px 8px' }}>{Number(prod.invQtyConverted || 0).toLocaleString()} {gVal.unit}</td>
+                                      </tr>
+                                      {/* CB Row */}
+                                      <tr>
+                                        <td className="fw-bold text-uppercase" style={{ color: t.headerText, padding: '6px 8px' }}>CB</td>
+                                        <td style={{ padding: '4px 8px' }}>
+                                          <input
+                                            type="number"
+                                            value={prod.cbPack}
+                                            onChange={(e) => handleProductFieldChange(gKey, pIdx, 'cbPack', e.target.value)}
+                                            className="form-control form-control-sm font-monospace py-0 px-2"
+                                            style={{ fontSize: '0.82rem', height: '28px', background: t.inputBg, color: t.inputText, border: `1px solid ${t.inputBorder}` }}
+                                          />
+                                        </td>
+                                        <td className="font-monospace text-center fw-bold" style={{ color: t.infoText, padding: '6px 8px' }}>{prod.packSize}</td>
+                                        <td className="font-monospace fw-bold text-end" style={{ fontSize: '0.86rem', color: t.successText, padding: '6px 8px' }}>{Number(prod.cbConverted || 0).toLocaleString()} {gVal.unit}</td>
+                                      </tr>
+                                    </tbody>
+                                  </table>
+                                </div>
+                              </div>
+                            ))
+                          ) : (
+                            <div className="text-muted fst-italic" style={{ fontSize: '0.8rem' }}>No products mapped in this group.</div>
+                          )}
+                        </div>
+
+                        {/* Group Totals Summary Box — Flat styled, high-contrast */}
+                        <div className="rounded-3 p-3" style={{ fontSize: '0.8rem', background: t.sectionHeaderBg, border: `1px solid ${t.cardBorder}` }}>
+                          <div className="fw-bold text-uppercase pb-1 mb-2" style={{ fontSize: '0.78rem', color: t.headerText, borderBottom: `1px solid ${t.tableBorder}` }}>
+                            {groupTitle} Consolidated Totals
+                          </div>
+                          <div className="table-responsive">
+                            <table className="table table-sm mb-0 align-middle font-monospace" style={{ fontSize: '0.8rem', borderCollapse: 'collapse' }}>
+                              <thead>
+                                <tr className="text-uppercase" style={{ fontSize: '0.72rem' }}>
+                                  <th style={{ color: t.labelText, borderBottom: `2px solid ${t.tableBorder}`, padding: '6px 8px' }}>Group Metric</th>
+                                  <th style={{ color: t.labelText, borderBottom: `2px solid ${t.tableBorder}`, padding: '6px 8px', textAlign: 'right' }}>Total Excel Qty (Packs)</th>
+                                  <th style={{ color: t.labelText, borderBottom: `2px solid ${t.tableBorder}`, padding: '6px 8px', textAlign: 'right' }}>Calculated SKU × Qty Total</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                <tr style={{ background: t.tableRowBg }}>
+                                  <td className="fw-bold" style={{ color: t.headerText, borderBottom: `1px solid ${t.tableBorder}`, padding: '6px 8px' }}>Total OB</td>
+                                  <td className="text-end" style={{ color: t.headerText, borderBottom: `1px solid ${t.tableBorder}`, padding: '6px 8px' }}>{totalOBPacks.toLocaleString()} Packs</td>
+                                  <td className="fw-bold text-end" style={{ fontSize: '0.86rem', color: t.successText, borderBottom: `1px solid ${t.tableBorder}`, padding: '6px 8px' }}>{Number(gVal.totalOB || 0).toLocaleString()} {gVal.unit}</td>
+                                </tr>
+                                <tr>
+                                  <td className="fw-bold" style={{ color: t.headerText, borderBottom: `1px solid ${t.tableBorder}`, padding: '6px 8px' }}>Total Production</td>
+                                  <td className="text-end" style={{ color: t.headerText, borderBottom: `1px solid ${t.tableBorder}`, padding: '6px 8px' }}>{totalProdPacks.toLocaleString()} Packs</td>
+                                  <td className="fw-bold text-end" style={{ fontSize: '0.86rem', color: t.successText, borderBottom: `1px solid ${t.tableBorder}`, padding: '6px 8px' }}>{Number(gVal.totalNetProd || 0).toLocaleString()} {gVal.unit}</td>
+                                </tr>
+                                <tr style={{ background: t.tableRowBg }}>
+                                  <td className="fw-bold" style={{ color: t.headerText, borderBottom: `1px solid ${t.tableBorder}`, padding: '6px 8px' }}>Total INV</td>
+                                  <td className="text-end" style={{ color: t.headerText, borderBottom: `1px solid ${t.tableBorder}`, padding: '6px 8px' }}>{totalInvPacks.toLocaleString()} Packs</td>
+                                  <td className="fw-bold text-end" style={{ fontSize: '0.86rem', color: t.successText, borderBottom: `1px solid ${t.tableBorder}`, padding: '6px 8px' }}>{Number(gVal.totalInvQty || 0).toLocaleString()} {gVal.unit}</td>
+                                </tr>
+                                <tr>
+                                  <td className="fw-bold" style={{ color: t.headerText, padding: '6px 8px' }}>Total CB</td>
+                                  <td className="text-end" style={{ color: t.headerText, padding: '6px 8px' }}>{totalCBPacks.toLocaleString()} Packs</td>
+                                  <td className="fw-bold text-end" style={{ fontSize: '0.86rem', color: t.successText, padding: '6px 8px' }}>{Number(gVal.totalCB || 0).toLocaleString()} {gVal.unit}</td>
+                                </tr>
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="text-center py-5 text-muted">
+                  <Layers size={36} className="mb-2 opacity-50" />
+                  <h6>No MBS Report Data Available</h6>
+                  <p style={{ fontSize: '0.75rem' }} className="mb-3">
+                    Upload an ERP/MBS Excel report above or click below to populate the editable template.
+                  </p>
+                  <button 
+                    type="button" 
+                    className="btn btn-sm btn-outline-info" 
+                    onClick={() => setMbsProductGroups(buildDefaultProductGroups(productMasterList))}
+                  >
+                    Load Product Master Template
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
 
-        {/* Section 2: Product Net Sales (Auto-extracted from Excel / Editable) */}
-        <div className="col-lg-6">
-          <div className="card border-secondary h-100" style={{ backgroundColor: 'var(--card-bg)' }}>
-            <div className="card-header bg-dark bg-opacity-25 fw-bold d-flex justify-content-between align-items-center" style={{ fontSize: '0.9rem' }}>
-              <span>📊 Product Net Sales (Extracted / Editable)</span>
-              <span className="badge bg-info text-dark">Excel Derived</span>
-            </div>
-            <div className="card-body">
-              <p className="text-muted mb-3" style={{ fontSize: '0.75rem' }}>
-                Extracted from Net Grp Qty column. You can manually edit any value for verification.
-              </p>
-              <div className="row g-3">
-                <div className="col-sm-6">
-                  <label className="form-label fw-bold text-primary" style={{ fontSize: '0.78rem' }}>Milk Net Sale (Ltr)</label>
-                  <input
-                    type="number"
-                    value={milkNetSale || ''}
-                    onChange={(e) => setMilkNetSale(Number(e.target.value) || 0)}
-                    className="form-control"
-                  />
-                </div>
-                <div className="col-sm-6">
-                  <label className="form-label fw-bold text-warning" style={{ fontSize: '0.78rem' }}>Curd Net Sale (Kg)</label>
-                  <input
-                    type="number"
-                    value={curdNetSale || ''}
-                    onChange={(e) => setCurdNetSale(Number(e.target.value) || 0)}
-                    className="form-control"
-                  />
-                </div>
-                <div className="col-sm-6">
-                  <label className="form-label fw-bold" style={{ fontSize: '0.78rem', color: '#f59e0b' }}>Ghee Net Sale (Ltr)</label>
-                  <input
-                    type="number"
-                    value={gheeNetSale || ''}
-                    onChange={(e) => setGheeNetSale(Number(e.target.value) || 0)}
-                    className="form-control"
-                  />
-                </div>
-                <div className="col-sm-6">
-                  <label className="form-label fw-bold" style={{ fontSize: '0.78rem', color: '#ec4899' }}>Peda Net Sale (Kg)</label>
-                  <input
-                    type="number"
-                    value={pedaNetSale || ''}
-                    onChange={(e) => setPedaNetSale(Number(e.target.value) || 0)}
-                    className="form-control"
-                  />
-                </div>
-                <div className="col-sm-6">
-                  <label className="form-label fw-bold" style={{ fontSize: '0.78rem', color: '#8b5cf6' }}>Palada Net Sale (Kg)</label>
-                  <input
-                    type="number"
-                    value={paladaNetSale || ''}
-                    onChange={(e) => setPaladaNetSale(Number(e.target.value) || 0)}
-                    className="form-control"
-                  />
-                </div>
-                <div className="col-sm-6">
-                  <label className="form-label fw-bold" style={{ fontSize: '0.78rem', color: '#06b6d4' }}>Sambaram (Ltr)</label>
-                  <input
-                    type="number"
-                    value={sambaramNetSale || ''}
-                    onChange={(e) => setSambaramNetSale(Number(e.target.value) || 0)}
-                    className="form-control"
-                  />
-                </div>
-                <div className="col-sm-6">
-                  <label className="form-label fw-bold" style={{ fontSize: '0.78rem', color: '#f97316' }}>Butter (Kg)</label>
-                  <input
-                    type="number"
-                    value={butterNetSale || ''}
-                    onChange={(e) => setButterNetSale(Number(e.target.value) || 0)}
-                    className="form-control"
-                  />
-                </div>
-                <div className="col-sm-6">
-                  <label className="form-label fw-bold" style={{ fontSize: '0.78rem', color: '#22d3ee' }}>UHT Milk (Ltr)</label>
-                  <input
-                    type="number"
-                    value={uhtMilkNetSale || ''}
-                    onChange={(e) => setUhtMilkNetSale(Number(e.target.value) || 0)}
-                    className="form-control"
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-      </div>
-
-      {/* 4. Action Buttons */}
-      <div className="d-flex justify-content-between align-items-center py-4 border-top mt-4 mb-4" style={{ borderColor: 'var(--border-color)' }}>
-        <span className="text-muted" style={{ fontSize: '0.75rem' }}>
-          * All fields can be manually verified and saved to update the viewer dashboard immediately.
-        </span>
-
-        <div className="d-flex gap-3">
-          <button type="button" onClick={onBackToDashboard} className="btn btn-outline-secondary px-4 py-2">
-            Cancel
-          </button>
-
-          <button type="button" onClick={handleSaveDraft} className="btn btn-warning px-4 py-2 fw-bold text-dark d-flex align-items-center gap-1">
-            <Save size={16} /> Save Draft
-          </button>
-
-          <button type="button" onClick={handleSubmitClick} className="btn btn-success px-5 py-2 fw-bold d-flex align-items-center gap-1">
-            <Check size={16} /> Submit Report
-          </button>
-        </div>
       </div>
 
       {/* Confirmation Dialog Overlay */}
@@ -525,6 +1036,408 @@ const ReportEntry = ({ selectedDate, onBackToDashboard, onSave, fetchReportData 
                 Submit
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Product Master Manager Modal — Subgroup Wise Mapping & Add Option */}
+      {showMasterModal && (
+        <div className="confirm-overlay" style={{ zIndex: 1050 }}>
+          <div className="confirm-box p-4" style={{ maxWidth: '1150px', width: '95%', maxHeight: '90vh', overflowY: 'auto' }}>
+            
+            {/* Modal Header */}
+            <div className="d-flex align-items-center justify-content-between border-bottom pb-2 mb-3">
+              <div className="d-flex align-items-center gap-2">
+                <Database size={22} color="#3b82f6" />
+                <div>
+                  <h5 className="fw-bold mb-0 text-white">Subgroup Wise Product Mapping Table</h5>
+                  <span className="text-muted" style={{ fontSize: '0.75rem' }}>
+                    Manage product master codes, subgroup mappings, and conversion rules
+                  </span>
+                </div>
+              </div>
+              <div className="d-flex gap-2">
+                <button 
+                  className="btn btn-sm btn-success fw-bold d-flex align-items-center gap-1"
+                  onClick={() => { setIsAddingProduct(true); setEditingItem(null); }}
+                >
+                  <Plus size={14} /> Add Product
+                </button>
+                <button className="btn btn-sm btn-outline-danger d-flex align-items-center gap-1" onClick={handleResetMaster}>
+                  <RotateCcw size={14} /> Reset Defaults
+                </button>
+                <button className="btn btn-sm btn-outline-secondary" onClick={handleCloseMasterModal}>
+                  Close
+                </button>
+              </div>
+            </div>
+
+            {/* Conversion Rule Info Banner */}
+            <div className="alert alert-info py-2 px-3 mb-3 d-flex flex-wrap align-items-center justify-content-between gap-2" style={{ fontSize: '0.78rem', background: 'rgba(59, 130, 246, 0.12)', border: '1px solid rgba(59, 130, 246, 0.3)', color: '#93c5fd' }}>
+              <div className="d-flex align-items-center gap-3">
+                <span>🧈 <strong>Ghee Rule (Subgroup 5):</strong> <code>sku = sku * 0.9</code> (All codes except Code 18)</span>
+                <span>•</span>
+                <span>🥛 <strong>Curd Rule (Subgroup 2):</strong> <code>sku = sku * 1.03</code> (Liters conversion)</span>
+              </div>
+              <div className="fw-bold text-white">
+                Total Products: {productMasterList.length}
+              </div>
+            </div>
+
+            {/* Subgroup Filters Bar & Search Box */}
+            <div className="row g-2 align-items-center mb-3">
+              <div className="col-md-8 d-flex flex-wrap gap-1">
+                <button 
+                  type="button" 
+                  className={`btn btn-xs px-2 py-1 ${subgrpFilter === 'ALL' ? 'btn-primary' : 'btn-outline-secondary'}`}
+                  style={{ fontSize: '0.72rem' }}
+                  onClick={() => setSubgrpFilter('ALL')}
+                >
+                  All Subgroups ({productMasterList.length})
+                </button>
+                {SUBGROUP_PRESETS.map(sg => {
+                  const count = productMasterList.filter(p => Number(p.subgrpCode) === sg.code).length;
+                  return (
+                    <button
+                      key={sg.code}
+                      type="button"
+                      className={`btn btn-xs px-2 py-1 ${Number(subgrpFilter) === sg.code ? 'btn-warning text-dark fw-bold' : 'btn-outline-secondary'}`}
+                      style={{ fontSize: '0.72rem' }}
+                      onClick={() => setSubgrpFilter(String(sg.code))}
+                    >
+                      {sg.name} ({count})
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="col-md-4">
+                <input 
+                  type="text"
+                  placeholder="Search code, product name, short name..."
+                  value={searchMasterQuery}
+                  onChange={e => setSearchMasterQuery(e.target.value)}
+                  className="form-control form-control-sm bg-dark text-white border-secondary"
+                  style={{ fontSize: '0.78rem' }}
+                />
+              </div>
+            </div>
+
+            {/* Add Product Form */}
+            {isAddingProduct && (
+              <form onSubmit={handleCreateMasterItem} className="p-3 mb-3 rounded border border-success bg-dark bg-opacity-75">
+                <div className="d-flex align-items-center justify-content-between mb-2">
+                  <h6 className="fw-bold text-success mb-0">➕ Add New Product Mapping</h6>
+                  <button type="button" className="btn btn-sm btn-link text-muted p-0" onClick={() => setIsAddingProduct(false)}>Cancel</button>
+                </div>
+                <div className="row g-2">
+                  <div className="col-md-2">
+                    <label style={{ fontSize: '0.7rem' }} className="text-muted">Product Code *</label>
+                    <input 
+                      type="number" 
+                      required
+                      placeholder="e.g. 1535" 
+                      value={newProduct.productCode} 
+                      onChange={e => setNewProduct({ ...newProduct, productCode: e.target.value })} 
+                      className="form-control form-control-sm font-monospace" 
+                    />
+                  </div>
+                  <div className="col-md-4">
+                    <label style={{ fontSize: '0.7rem' }} className="text-muted">Product Name *</label>
+                    <input 
+                      type="text" 
+                      required
+                      placeholder="e.g. Special Curd 500g" 
+                      value={newProduct.productName} 
+                      onChange={e => setNewProduct({ ...newProduct, productName: e.target.value })} 
+                      className="form-control form-control-sm" 
+                    />
+                  </div>
+                  <div className="col-md-3">
+                    <label style={{ fontSize: '0.7rem' }} className="text-muted">Subgroup Preset</label>
+                    <select 
+                      value={newProduct.subgrpCode} 
+                      onChange={e => {
+                        const code = Number(e.target.value);
+                        const preset = SUBGROUP_PRESETS.find(p => p.code === code);
+                        if (preset) {
+                          setNewProduct({
+                            ...newProduct,
+                            subgrpCode: preset.code,
+                            subgrpName: preset.name,
+                            maingrpCode: preset.maingrpCode,
+                            maingrpName: preset.maingrpName,
+                            groupUnit: preset.defaultUnit
+                          });
+                        }
+                      }} 
+                      className="form-select form-select-sm"
+                    >
+                      {SUBGROUP_PRESETS.map(p => (
+                        <option key={p.code} value={p.code}>{p.code}: {p.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="col-md-3">
+                    <label style={{ fontSize: '0.7rem' }} className="text-muted">Short Name</label>
+                    <input 
+                      type="text" 
+                      placeholder="e.g. SC500" 
+                      value={newProduct.shortName} 
+                      onChange={e => setNewProduct({ ...newProduct, shortName: e.target.value })} 
+                      className="form-control form-control-sm font-monospace" 
+                    />
+                  </div>
+                </div>
+
+                <div className="row g-2 mt-1 align-items-center">
+                  <div className="col-md-2">
+                    <label style={{ fontSize: '0.7rem' }} className="text-muted">Subgrp Code</label>
+                    <input 
+                      type="number" 
+                      value={newProduct.subgrpCode} 
+                      onChange={e => setNewProduct({ ...newProduct, subgrpCode: Number(e.target.value) })} 
+                      className="form-control form-control-sm" 
+                    />
+                  </div>
+                  <div className="col-md-2">
+                    <label style={{ fontSize: '0.7rem' }} className="text-muted">Subgrp Name</label>
+                    <input 
+                      type="text" 
+                      value={newProduct.subgrpName} 
+                      onChange={e => setNewProduct({ ...newProduct, subgrpName: e.target.value })} 
+                      className="form-control form-control-sm" 
+                    />
+                  </div>
+                  <div className="col-md-2">
+                    <label style={{ fontSize: '0.7rem' }} className="text-muted">Maingrp Code / Name</label>
+                    <select 
+                      value={newProduct.maingrpCode} 
+                      onChange={e => {
+                        const code = Number(e.target.value);
+                        setNewProduct({
+                          ...newProduct,
+                          maingrpCode: code,
+                          maingrpName: code === 1 ? 'Milk Packets' : 'Products'
+                        });
+                      }} 
+                      className="form-select form-select-sm"
+                    >
+                      <option value={1}>1: Milk Packets</option>
+                      <option value={2}>2: Products</option>
+                    </select>
+                  </div>
+                  <div className="col-md-2">
+                    <label style={{ fontSize: '0.7rem' }} className="text-muted">Group Unit</label>
+                    <select 
+                      value={newProduct.groupUnit} 
+                      onChange={e => setNewProduct({ ...newProduct, groupUnit: e.target.value })} 
+                      className="form-select form-select-sm font-monospace"
+                    >
+                      <option value="ltr">ltr</option>
+                      <option value="kgs">kgs</option>
+                    </select>
+                  </div>
+                  <div className="col-md-1">
+                    <label style={{ fontSize: '0.7rem' }} className="text-muted">Nos</label>
+                    <input 
+                      type="number" 
+                      value={newProduct.groupNos} 
+                      onChange={e => setNewProduct({ ...newProduct, groupNos: e.target.value })} 
+                      className="form-control form-control-sm" 
+                    />
+                  </div>
+                  <div className="col-md-3">
+                    <label style={{ fontSize: '0.7rem' }} className="text-muted">Base SKU Vol / Wt</label>
+                    <input 
+                      type="number" 
+                      step="0.0001" 
+                      value={newProduct.baseVal} 
+                      onChange={e => setNewProduct({ ...newProduct, baseVal: e.target.value, groupValue: e.target.value })} 
+                      className="form-control form-control-sm font-monospace fw-bold text-warning" 
+                    />
+                  </div>
+                </div>
+
+                <div className="d-flex align-items-center justify-content-between mt-2 pt-2 border-top border-secondary">
+                  <div className="form-check form-switch small">
+                    <input 
+                      type="checkbox" 
+                      className="form-check-input" 
+                      id="autoCalculateCheckNew" 
+                      checked={newProduct.autoCalculateSku}
+                      onChange={e => setNewProduct({ ...newProduct, autoCalculateSku: e.target.checked })} 
+                    />
+                    <label className="form-check-label text-info" htmlFor="autoCalculateCheckNew" style={{ fontSize: '0.75rem' }}>
+                      Auto-apply Conversion Rules (Ghee <code>* 0.9</code> except 18, Curd <code>* 1.03</code>)
+                    </label>
+                  </div>
+                  <div className="d-flex align-items-center gap-3">
+                    <span className="text-white small">
+                      Final Group Value (SKU): <strong className="text-success font-monospace" style={{ fontSize: '0.9rem' }}>
+                        {newProduct.autoCalculateSku 
+                          ? calculateGroupValueFrontend(newProduct.subgrpCode, newProduct.productCode, newProduct.baseVal, newProduct.groupUnit) 
+                          : newProduct.groupValue}
+                      </strong>
+                    </span>
+                    <button type="submit" className="btn btn-sm btn-success px-3 fw-bold">Save New Product</button>
+                  </div>
+                </div>
+              </form>
+            )}
+
+            {/* Edit Product Form */}
+            {editingItem && (
+              <form onSubmit={handleSaveMasterItem} className="p-3 mb-3 rounded border border-info bg-dark bg-opacity-75">
+                <div className="d-flex align-items-center justify-content-between mb-2">
+                  <h6 className="fw-bold text-info mb-0">✏️ Edit Product Master Mapping (Code: {editingItem.productCode})</h6>
+                  <button type="button" className="btn btn-sm btn-link text-muted p-0" onClick={() => setEditingItem(null)}>Cancel</button>
+                </div>
+                <div className="row g-2">
+                  <div className="col-md-2">
+                    <label style={{ fontSize: '0.7rem' }} className="text-muted">Code</label>
+                    <input type="number" value={editingItem.productCode} disabled className="form-control form-control-sm font-monospace" />
+                  </div>
+                  <div className="col-md-4">
+                    <label style={{ fontSize: '0.7rem' }} className="text-muted">Product Name</label>
+                    <input type="text" value={editingItem.productName} onChange={e => setEditingItem({ ...editingItem, productName: e.target.value })} className="form-control form-control-sm" />
+                  </div>
+                  <div className="col-md-3">
+                    <label style={{ fontSize: '0.7rem' }} className="text-muted">Subgrp Name</label>
+                    <input type="text" value={editingItem.subgrpName} onChange={e => setEditingItem({ ...editingItem, subgrpName: e.target.value })} className="form-control form-control-sm" />
+                  </div>
+                  <div className="col-md-3">
+                    <label style={{ fontSize: '0.7rem' }} className="text-muted">Short Name</label>
+                    <input type="text" value={editingItem.shortName || ''} onChange={e => setEditingItem({ ...editingItem, shortName: e.target.value })} className="form-control form-control-sm font-monospace" />
+                  </div>
+                </div>
+
+                <div className="row g-2 mt-1 align-items-center">
+                  <div className="col-md-2">
+                    <label style={{ fontSize: '0.7rem' }} className="text-muted">Subgrp Code</label>
+                    <input type="number" value={editingItem.subgrpCode} onChange={e => setEditingItem({ ...editingItem, subgrpCode: Number(e.target.value) })} className="form-control form-control-sm" />
+                  </div>
+                  <div className="col-md-2">
+                    <label style={{ fontSize: '0.7rem' }} className="text-muted">Maingrp Name</label>
+                    <input type="text" value={editingItem.maingrpName} onChange={e => setEditingItem({ ...editingItem, maingrpName: e.target.value })} className="form-control form-control-sm" />
+                  </div>
+                  <div className="col-md-2">
+                    <label style={{ fontSize: '0.7rem' }} className="text-muted">Group Unit</label>
+                    <select value={editingItem.groupUnit} onChange={e => setEditingItem({ ...editingItem, groupUnit: e.target.value })} className="form-select form-select-sm font-monospace">
+                      <option value="ltr">ltr</option>
+                      <option value="kgs">kgs</option>
+                    </select>
+                  </div>
+                  <div className="col-md-2">
+                    <label style={{ fontSize: '0.7rem' }} className="text-muted">Group Nos</label>
+                    <input type="number" value={editingItem.groupNos} onChange={e => setEditingItem({ ...editingItem, groupNos: e.target.value })} className="form-control form-control-sm" />
+                  </div>
+                  <div className="col-md-4">
+                    <label style={{ fontSize: '0.7rem' }} className="text-muted">Group Value (SKU)</label>
+                    <input 
+                      type="number" 
+                      step="0.0001" 
+                      value={editingItem.groupValue} 
+                      onChange={e => setEditingItem({ ...editingItem, groupValue: e.target.value, packSizeMultiplier: e.target.value })} 
+                      className="form-control form-control-sm font-monospace fw-bold text-success" 
+                    />
+                  </div>
+                </div>
+
+                <div className="d-flex justify-content-end gap-2 mt-2">
+                  <button type="button" className="btn btn-sm btn-secondary" onClick={() => setEditingItem(null)}>Cancel</button>
+                  <button type="submit" className="btn btn-sm btn-info text-white fw-bold">Update Mapping</button>
+                </div>
+              </form>
+            )}
+
+            {/* Subgroup Wise Products Table */}
+            <div className="table-responsive" style={{ maxHeight: '420px' }}>
+              <table className="table table-dark table-striped table-hover align-middle mb-0" style={{ fontSize: '0.75rem' }}>
+                <thead className="table-primary sticky-top">
+                  <tr>
+                    <th>Product Code</th>
+                    <th>Product Name</th>
+                    <th>Subgrp Code</th>
+                    <th>Subgrp Name</th>
+                    <th>Maingrp Code</th>
+                    <th>Maingrp Name</th>
+                    <th>Short Name</th>
+                    <th>Group Unit</th>
+                    <th>Group Nos</th>
+                    <th>Group Value</th>
+                    <th className="text-center">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {productMasterList
+                    .filter(item => {
+                      const matchesSubgroup = subgrpFilter === 'ALL' || Number(item.subgrpCode) === Number(subgrpFilter);
+                      const q = searchMasterQuery.toLowerCase().trim();
+                      const matchesSearch = !q || 
+                        String(item.productCode).includes(q) || 
+                        (item.productName || '').toLowerCase().includes(q) || 
+                        (item.shortName || '').toLowerCase().includes(q) ||
+                        (item.subgrpName || '').toLowerCase().includes(q);
+                      return matchesSubgroup && matchesSearch;
+                    })
+                    .map(item => {
+                      const sCode = Number(item.subgrpCode);
+                      const isGhee = sCode === 5;
+                      const isCurd = sCode === 2;
+                      const isCode18 = Number(item.productCode) === 18;
+
+                      return (
+                        <tr key={item.productCode}>
+                          <td className="fw-bold font-monospace text-warning">{item.productCode}</td>
+                          <td className="fw-semibold text-white">{item.productName}</td>
+                          <td className="font-monospace text-center">{item.subgrpCode}</td>
+                          <td>
+                            <span className="badge bg-secondary bg-opacity-75" style={{ fontSize: '0.7rem' }}>
+                              {item.subgrpName}
+                            </span>
+                          </td>
+                          <td className="font-monospace text-center">{item.maingrpCode}</td>
+                          <td className="text-muted">{item.maingrpName}</td>
+                          <td className="font-monospace text-info">{item.shortName || '--'}</td>
+                          <td className="font-monospace">{item.groupUnit}</td>
+                          <td className="font-monospace text-center">{item.groupNos}</td>
+                          <td className="font-monospace fw-bold text-success" style={{ fontSize: '0.82rem' }}>
+                            {item.groupValue}
+                            {isGhee && !isCode18 && (
+                              <span className="badge bg-warning text-dark ms-1 opacity-75" style={{ fontSize: '0.62rem' }}>0.9x</span>
+                            )}
+                            {isGhee && isCode18 && (
+                              <span className="badge bg-info text-dark ms-1 opacity-75" style={{ fontSize: '0.62rem' }}>Code 18 (No 0.9)</span>
+                            )}
+                            {isCurd && item.groupUnit === 'kgs' && item.groupValue !== 5 && item.groupValue !== 0.525 && item.groupValue !== 0.45 && (
+                              <span className="badge bg-primary ms-1 opacity-75" style={{ fontSize: '0.62rem' }}>1.03x</span>
+                            )}
+                          </td>
+                          <td className="text-center">
+                            <div className="d-flex align-items-center justify-content-center gap-1">
+                              <button 
+                                className="btn btn-sm btn-outline-info p-1 py-0" 
+                                style={{ fontSize: '0.7rem' }}
+                                onClick={() => setEditingItem(item)}
+                              >
+                                Edit
+                              </button>
+                              <button 
+                                className="btn btn-sm btn-outline-danger p-1 py-0" 
+                                style={{ fontSize: '0.7rem' }}
+                                onClick={() => handleDeleteMasterItem(item.productCode)}
+                              >
+                                Delete
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                </tbody>
+              </table>
+            </div>
+
           </div>
         </div>
       )}

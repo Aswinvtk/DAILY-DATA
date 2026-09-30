@@ -32,14 +32,10 @@ function App() {
     localStorage.setItem('mpod_theme', theme);
   }, [theme]);
 
-  // Handle scrollability in body when in report entry view
+  // Keep outer viewport fixed without document scrollbars
   useEffect(() => {
-    if (view === 'report_entry') {
-      document.body.classList.add('scrollable-body');
-    } else {
-      document.body.classList.remove('scrollable-body');
-      window.scrollTo(0, 0);
-    }
+    document.body.classList.remove('scrollable-body');
+    window.scrollTo(0, 0);
   }, [view]);
 
   // Live Clock effect - Exact day, date and ticking time
@@ -216,6 +212,13 @@ function App() {
     }
   };
 
+  const [showProductMappingModal, setShowProductMappingModal] = useState(false);
+
+  const handleOpenProductMapping = () => {
+    setShowProductMappingModal(true);
+    setView('report_entry');
+  };
+
   return (
     <div className="d-flex flex-column h-100">
       <Header
@@ -274,6 +277,8 @@ function App() {
           onBackToDashboard={() => { setView('dashboard'); fetchData(selectedDate); }}
           onSave={handleSaveData}
           fetchReportData={handleFetchReportData}
+          initialShowMasterModal={showProductMappingModal}
+          onCloseMasterModal={() => setShowProductMappingModal(false)}
         />
       )}
     </div>

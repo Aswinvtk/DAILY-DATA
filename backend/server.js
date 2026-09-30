@@ -4,8 +4,8 @@ import dotenv from 'dotenv';
 import multer from 'multer';
 import connectDB from './db.js';
 import DailyOperations, { AlertItem } from './model.js';
-import { parseWayanadExcel } from './excelParser.js';
-
+import { parseMBSReport, parseWayanadExcel } from './excelParser.js';
+import { ProductMaster, getProductMasterMap, seedProductMaster, DEFAULT_PRODUCT_MAPPINGS, calculateSkuGroupValue } from './productMaster.js';
 
 dotenv.config();
 
@@ -15,76 +15,50 @@ app.use(express.json());
 
 const upload = multer({ limits: { fileSize: 10 * 1024 * 1024 } });
 
-// Connect to MongoDB
+// Connect to MongoDB and seed Product Master
 connectDB();
+seedProductMaster();
 
 // Plain empty structure returned for dates with no data in the database
 const createEmptyData = (dateStr) => {
   return {
     date: dateStr,
     status: 'No Data',
-    collectionData: { wyd: 0 },
+    collectionData: { wyd: 0, mvd: 0 },
+    milkCollectionDetails: {
+      wyd: 0,
+      mdy: 0,
+      outsidePurchases: [],
+      stockOuts: [],
+      totalCollection: 0
+    },
     milkReceived: { dairy: 0, mvd: 0, total: 0, unit: 'WYD' },
-    milkSale: {
-      total: 0,
-      categories: []
-    },
-    curdSale: {
-      total: 0,
-      categories: []
-    },
+    milkSale: { total: 0, categories: [] },
+    curdSale: { total: 0, categories: [] },
     purchase: { unitName: '', quantity: 0 },
     milkClosingStock: 0,
-    // Net sales from Excel
     gheeNetSale: 0,
     pedaNetSale: 0,
     paladaNetSale: 0,
     sambaramNetSale: 0,
     butterNetSale: 0,
     uhtMilkNetSale: 0,
-    // Manual milk collection (optional)
     totalCollection: 0,
     receivedAtDockWyd: 0,
     receivedAtDockMdy: 0,
-    products: [
-      { productName: 'CREAM', totalStock: 0, variants: [] },
-      { productName: 'SMP', totalStock: 0, variants: [] },
-      {
-        productName: 'BUTTER',
-        totalStock: 0,
-        variants: [
-          { name: '100 g', value: 0 },
-          { name: '200 g', value: 0 },
-          { name: '500 g', value: 0 },
-          { name: 'Bulk', value: 0 },
-          { name: 'Cooking Butter Bulk', value: 0 }
-        ]
-      },
-      {
-        productName: 'PANEER',
-        totalStock: 0,
-        variants: [
-          { name: '500 g', value: 0 },
-          { name: '1 Kg', value: 0 },
-          { name: 'Bulk', value: 0 }
-        ]
-      },
-      {
-        productName: 'GHEE',
-        totalStock: 0,
-        variants: [
-          { name: '100 ml', value: 0 },
-          { name: '200 ml', value: 0 },
-          { name: '500 ml', value: 0 },
-          { name: '1 L', value: 0 },
-          { name: '2 L', value: 0 },
-          { name: '5 L', value: 0 },
-          { name: '15 Kg', value: 0 },
-          { name: 'Bulk', value: 0 },
-          { name: '50ml PP Jar', value: 0 }
-        ]
-      }
-    ],
+    products: [],
+    mbsProductGroups: {
+      milk: { totalOB: 0, totalNetProd: 0, totalInvQty: 0, totalCB: 0, unit: 'L', products: [] },
+      curd: { totalOB: 0, totalNetProd: 0, totalInvQty: 0, totalCB: 0, unit: 'L', products: [] },
+      ghee: { totalOB: 0, totalNetProd: 0, totalInvQty: 0, totalCB: 0, unit: 'L', products: [] },
+      butter: { totalOB: 0, totalNetProd: 0, totalInvQty: 0, totalCB: 0 },
+      paneer: { totalOB: 0, totalNetProd: 0, totalInvQty: 0, totalCB: 0 },
+      peda: { totalOB: 0, totalNetProd: 0, totalInvQty: 0, totalCB: 0 },
+      palada: { totalOB: 0, totalNetProd: 0, totalInvQty: 0, totalCB: 0 },
+      gheeBiscuit: { totalOB: 0, totalNetProd: 0, totalInvQty: 0, totalCB: 0 },
+      condensedMilk: { totalOB: 0, totalNetProd: 0, totalInvQty: 0, totalCB: 0 },
+      other: { totalOB: 0, totalNetProd: 0, totalInvQty: 0, totalCB: 0 }
+    },
     excelFileName: '',
     uploadedBy: '',
     createdBy: '',
@@ -93,7 +67,7 @@ const createEmptyData = (dateStr) => {
   };
 };
 
-const getYesterdayClosingStock = async (dateStr, todayStock) => {
+const getYesterdayClosingStock = async (dateStr) => {
   try {
     const dateObj = new Date(dateStr);
     dateObj.setDate(dateObj.getDate() - 1);
@@ -103,9 +77,7 @@ const getYesterdayClosingStock = async (dateStr, todayStock) => {
     if (yesterdayDoc) {
       return yesterdayDoc.milkClosingStock || 0;
     } else {
-      if (dateStr === '2026-04-28') {
-        return 250500;
-      }
+      if (dateStr === '2026-04-28') return 250500;
       return 0;
     }
   } catch (error) {
@@ -114,7 +86,7 @@ const getYesterdayClosingStock = async (dateStr, todayStock) => {
   }
 };
 
-// Get operations data for a specific date
+// GET operations data for a specific date
 app.get('/api/operations', async (req, res) => {
   try {
     const dateStr = req.query.date; // Expecting YYYY-MM-DD
@@ -128,7 +100,7 @@ app.get('/api/operations', async (req, res) => {
     }
 
     const responseData = data.toObject ? data.toObject() : { ...data };
-    responseData.yesterdayClosingStock = await getYesterdayClosingStock(dateStr, responseData.milkClosingStock || 0);
+    responseData.yesterdayClosingStock = await getYesterdayClosingStock(dateStr);
 
     res.json(responseData);
   } catch (error) {
@@ -137,7 +109,131 @@ app.get('/api/operations', async (req, res) => {
   }
 });
 
-// Excel Upload & Data Extraction for Wayanad Daily Sales
+// ==========================================
+// PRODUCT MASTER API ENDPOINTS
+// ==========================================
+
+// GET product master mappings
+app.get('/api/product-master', async (req, res) => {
+  try {
+    const items = await ProductMaster.find().sort({ subgrpCode: 1, productCode: 1 });
+    if (items.length === 0) {
+      await seedProductMaster();
+      const seeded = await ProductMaster.find().sort({ subgrpCode: 1, productCode: 1 });
+      return res.json(seeded);
+    }
+    res.json(items);
+  } catch (error) {
+    console.error('Error fetching product master:', error);
+    res.status(500).json({ error: 'Failed to fetch product master mappings' });
+  }
+});
+
+// POST add or update product master item
+app.post('/api/product-master', async (req, res) => {
+  try {
+    const { 
+      productCode, productName, subgrpCode, subgrpName, 
+      maingrpCode, maingrpName, shortName, groupUnit, groupNos, groupValue,
+      group, unit, packSizeMultiplier, autoCalculateSku 
+    } = req.body;
+
+    if (!productCode || !productName) {
+      return res.status(400).json({ error: 'productCode and productName are required' });
+    }
+
+    const codeNum = Number(productCode);
+    const subCode = Number(subgrpCode) || 1;
+    const sName = (subgrpName || 'Milk Packets').trim();
+    const mainCode = Number(maingrpCode) || (subCode <= 3 || subCode === 51 ? 1 : 2);
+    const mName = (maingrpName || (mainCode === 1 ? 'Milk Packets' : 'Products')).trim();
+    const sShort = (shortName || '').trim();
+    const gUnit = (groupUnit || 'ltr').trim().toLowerCase();
+    const gNos = Number(groupNos) || 1;
+
+    let finalGroupValue = Number(groupValue);
+    if (isNaN(finalGroupValue) || autoCalculateSku) {
+      finalGroupValue = calculateSkuGroupValue({
+        subgrpCode: subCode,
+        subgrpName: sName,
+        productCode: codeNum,
+        baseValue: Number(packSizeMultiplier) || Number(groupValue) || 1.0,
+        groupUnit: gUnit
+      });
+    }
+
+    // Determine dashboard group key
+    let dashGroup = group;
+    if (!dashGroup) {
+      if (subCode === 1) dashGroup = 'Milk';
+      else if (subCode === 2 || subCode === 3 || subCode === 51) dashGroup = 'Curd';
+      else if (subCode === 5) dashGroup = 'Ghee';
+      else if (subCode === 6) dashGroup = 'Butter';
+      else if (subCode === 33) dashGroup = 'Paneer';
+      else if (subCode === 4) dashGroup = 'Peda';
+      else if (subCode === 7) dashGroup = 'Palada';
+      else if (subCode === 55) dashGroup = 'Ghee Biscuit';
+      else dashGroup = 'Other';
+    }
+
+    const updated = await ProductMaster.findOneAndUpdate(
+      { productCode: codeNum },
+      { 
+        $set: { 
+          productCode: codeNum, 
+          productName: productName.trim(), 
+          subgrpCode: subCode,
+          subgrpName: sName,
+          maingrpCode: mainCode,
+          maingrpName: mName,
+          shortName: sShort,
+          groupUnit: gUnit,
+          groupNos: gNos,
+          groupValue: finalGroupValue,
+          group: dashGroup, 
+          unit: unit || (gUnit === 'kgs' ? 'Kg' : 'L'), 
+          packSizeMultiplier: finalGroupValue 
+        } 
+      },
+      { new: true, upsert: true }
+    );
+
+    res.json({ success: true, item: updated });
+  } catch (error) {
+    console.error('Error saving product master item:', error);
+    res.status(500).json({ error: 'Failed to save product master item' });
+  }
+});
+
+// DELETE product master item
+app.delete('/api/product-master/:code', async (req, res) => {
+  try {
+    const codeNum = Number(req.params.code);
+    await ProductMaster.deleteOne({ productCode: codeNum });
+    const items = await ProductMaster.find().sort({ subgrpCode: 1, productCode: 1 });
+    res.json({ success: true, items });
+  } catch (error) {
+    console.error('Error deleting product master item:', error);
+    res.status(500).json({ error: 'Failed to delete product master item' });
+  }
+});
+
+// POST reset product master to defaults
+app.post('/api/product-master/reset', async (req, res) => {
+  try {
+    await ProductMaster.deleteMany({});
+    await ProductMaster.insertMany(DEFAULT_PRODUCT_MAPPINGS);
+    const items = await ProductMaster.find().sort({ subgrpCode: 1, productCode: 1 });
+    res.json({ success: true, items });
+  } catch (error) {
+    console.error('Error resetting product master:', error);
+    res.status(500).json({ error: 'Failed to reset product master' });
+  }
+});
+
+// ==========================================
+// EXCEL UPLOAD & MBS REPORT PARSER API
+// ==========================================
 app.post('/api/parse-excel', upload.single('file'), async (req, res) => {
   const startTime = Date.now();
   try {
@@ -152,43 +248,36 @@ app.post('/api/parse-excel', upload.single('file'), async (req, res) => {
     }
 
     console.log(`[parse-excel] Received: "${file.originalname}" (${(file.size / 1024).toFixed(1)} KB)`);
-    console.log(`[parse-excel] Date: ${req.body.date || '(none)'}`);
-
     const extractedDate = req.body.date || new Date().toISOString().split('T')[0];
 
-    let parsed;
-    try {
-      parsed = parseWayanadExcel(file.buffer);
-    } catch (e) {
-      console.error('[parse-excel] Parse error:', e.message);
-      parsed = { extractedFields: [] };
-    }
+    const masterMap = await getProductMasterMap();
+    const { productGroups, unmappedProducts } = parseMBSReport(file.buffer, masterMap);
 
     const elapsed = Date.now() - startTime;
-    console.log(`[parse-excel] Done in ${elapsed}ms`);
+    console.log(`[parse-excel] Parsed MBS report in ${elapsed}ms`);
 
-    // Build response data using milkSale.total from milkNetSale, etc.
+    // Build response data object with consolidated product groups
     const extractedData = {
       date: extractedDate,
-      milkSale: { total: parsed.milkNetSale || 0, categories: [] },
-      curdSale: { total: parsed.curdNetSale || 0, categories: [] },
-      purchase: { unitName: parsed.purchaseUnitName || '', quantity: parsed.purchaseTotal || 0 },
-      gheeNetSale:     parsed.gheeNetSale || 0,
-      pedaNetSale:     parsed.pedaNetSale || 0,
-      paladaNetSale:   parsed.paladaNetSale || 0,
-      sambaramNetSale: parsed.sambaramNetSale || 0,
-      butterNetSale:   parsed.butterNetSale || 0,
-      uhtMilkNetSale:  parsed.uhtMilkNetSale || 0,
+      mbsProductGroups: productGroups,
+      milkSale: { total: productGroups.milk.totalInvQty, categories: [] },
+      curdSale: { total: productGroups.curd.totalInvQty, categories: [] },
+      gheeNetSale: productGroups.ghee.totalInvQty,
+      butterNetSale: productGroups.butter.totalInvQty,
+      paneerNetSale: productGroups.paneer.totalInvQty,
+      pedaNetSale: productGroups.peda.totalInvQty,
+      paladaNetSale: productGroups.palada.totalInvQty,
+      gheeBiscuitNetSale: productGroups.gheeBiscuit.totalInvQty,
+      condensedMilkNetSale: productGroups.condensedMilk.totalInvQty,
       excelFileName: file.originalname,
       uploadedAt: new Date(),
       uploadedBy: 'Admin',
-      extractedFields: parsed.extractedFields || []
+      unmappedProducts
     };
 
     res.json({
       success: true,
       extractedDate,
-      extractedFields: parsed.extractedFields || [],
       data: extractedData
     });
   } catch (err) {
@@ -197,8 +286,7 @@ app.post('/api/parse-excel', upload.single('file'), async (req, res) => {
   }
 });
 
-
-// Save or Update data (used by Data Entry Panel)
+// Save or Update Operations Data (Data Entry & Dashboard Updates)
 app.post('/api/operations', async (req, res) => {
   try {
     const { date, status } = req.body;
@@ -208,36 +296,27 @@ app.post('/api/operations', async (req, res) => {
 
     const payload = req.body;
 
-    // Recompute totals for safety only if categories are populated
-    if (payload.milkSale && Array.isArray(payload.milkSale.categories) && payload.milkSale.categories.length > 0) {
-      const catSum = payload.milkSale.categories.reduce((sum, c) => sum + (Number(c.value) || 0), 0);
-      if (catSum > 0) {
-        payload.milkSale.total = catSum;
-      }
-    }
-    if (payload.curdSale && Array.isArray(payload.curdSale.categories) && payload.curdSale.categories.length > 0) {
-      const catSum = payload.curdSale.categories.reduce((sum, c) => sum + (Number(c.value) || 0), 0);
-      if (catSum > 0) {
-        payload.curdSale.total = catSum;
-      }
-    }
-    if (payload.products) {
-      payload.products.forEach(p => {
-        if (p.variants && p.variants.length > 0) {
-          p.totalStock = p.variants.reduce((sum, v) => sum + (Number(v.value) || 0), 0);
-        } else {
-          p.totalStock = Number(p.totalStock) || 0;
-        }
-      });
+    // Calculate Milk Collection total if milkCollectionDetails is passed
+    if (payload.milkCollectionDetails) {
+      const wyd = Number(payload.milkCollectionDetails.wyd) || 0;
+      const mdy = Number(payload.milkCollectionDetails.mdy) || 0;
+      const outsideSum = Array.isArray(payload.milkCollectionDetails.outsidePurchases)
+        ? payload.milkCollectionDetails.outsidePurchases.reduce((s, p) => s + (Number(p.quantity) || 0), 0)
+        : 0;
+      const stockOutSum = Array.isArray(payload.milkCollectionDetails.stockOuts)
+        ? payload.milkCollectionDetails.stockOuts.reduce((s, p) => s + (Number(p.quantity) || 0), 0)
+        : 0;
+      payload.milkCollectionDetails.totalCollection = Number((wyd + mdy + outsideSum - stockOutSum).toFixed(2));
+      payload.totalCollection = payload.milkCollectionDetails.totalCollection;
     }
 
-    // Preserve custom user alerts array (even if empty []), only set defaults if undefined/null
+    // Preserve custom user alerts array
     if (!payload.alerts || !Array.isArray(payload.alerts)) {
       payload.alerts = [
         'All Operations Normal',
-        payload.purchase && payload.purchase.quantity > 0
-          ? `Purchase Today: ${Number(payload.purchase.quantity).toLocaleString()} Kg from ${payload.purchase.unitName}`
-          : 'No Purchase Today',
+        payload.milkCollectionDetails && payload.milkCollectionDetails.totalCollection > 0
+          ? `Total Milk Collection: ${Number(payload.milkCollectionDetails.totalCollection).toLocaleString()} L`
+          : 'No Milk Collection Today',
         'Butter Stock is Normal',
         'Auto Refresh : Every 30 Seconds'
       ];
@@ -273,7 +352,7 @@ app.post('/api/operations', async (req, res) => {
     console.log(`Report updated for date ${date} with status ${updatedData.status}`);
 
     const responseData = updatedData.toObject();
-    responseData.yesterdayClosingStock = await getYesterdayClosingStock(date, responseData.milkClosingStock || 0);
+    responseData.yesterdayClosingStock = await getYesterdayClosingStock(date);
 
     res.json(responseData);
   } catch (error) {
@@ -285,8 +364,6 @@ app.post('/api/operations', async (req, res) => {
 // ==========================================
 // ALERTS & UPDATES COLLECTION API ENDPOINTS
 // ==========================================
-
-// Helper to seed default alerts if collection is empty
 const seedDefaultAlerts = async () => {
   try {
     const count = await AlertItem.countDocuments();
@@ -306,7 +383,6 @@ const seedDefaultAlerts = async () => {
 };
 seedDefaultAlerts();
 
-// GET all active alerts & updates
 app.get('/api/alerts', async (req, res) => {
   try {
     let alerts = await AlertItem.find().sort({ createdAt: 1 });
@@ -321,7 +397,6 @@ app.get('/api/alerts', async (req, res) => {
   }
 });
 
-// POST add a new alert
 app.post('/api/alerts', async (req, res) => {
   try {
     const { text } = req.body;
@@ -337,10 +412,9 @@ app.post('/api/alerts', async (req, res) => {
   }
 });
 
-// PUT update full list of alerts / sync alerts
 app.put('/api/alerts/sync', async (req, res) => {
   try {
-    const { alerts } = req.body; // Expecting array of text strings or alert objects
+    const { alerts } = req.body;
     if (Array.isArray(alerts)) {
       await AlertItem.deleteMany({});
       const newItems = alerts
@@ -358,7 +432,6 @@ app.put('/api/alerts/sync', async (req, res) => {
   }
 });
 
-// PUT update a specific alert by ID
 app.put('/api/alerts/:id', async (req, res) => {
   try {
     const { id } = req.params;
@@ -376,7 +449,6 @@ app.put('/api/alerts/:id', async (req, res) => {
   }
 });
 
-// DELETE remove an alert by ID
 app.delete('/api/alerts/:id', async (req, res) => {
   try {
     const { id } = req.params;

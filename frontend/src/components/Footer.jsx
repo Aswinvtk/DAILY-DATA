@@ -101,7 +101,7 @@ const Footer = ({ alerts = [], onRefresh, onUpdateAlerts }) => {
             <div key={idx} className="ticker-item">
               {getAlertIcon(item)}
               <span>{item}</span>
-              <span className="ticker-item-separator ms-4">|</span>
+              <span className="ticker-item-separator ms-4" style={{ opacity: 0.5, fontSize: '1.1em' }}>•</span>
             </div>
           ))}
         </div>

@@ -114,7 +114,7 @@ const DataEntry = ({ isOpen, onClose, initialData, onSave }) => {
                   <label className="form-label text-muted">Wayanad Dairy (WYD)</label>
                   <input
                     type="number"
-                    className="form-control bg-dark text-white border-secondary"
+                    className="form-control"
                     value={formData.collectionData.wyd}
                     onChange={(e) => handleChange('collectionData', 'wyd', e.target.value, null, 'sub')}
                     required
@@ -124,7 +124,7 @@ const DataEntry = ({ isOpen, onClose, initialData, onSave }) => {
                   <label className="form-label text-muted">Mananthavady (MVD)</label>
                   <input
                     type="number"
-                    className="form-control bg-dark text-white border-secondary"
+                    className="form-control"
                     value={formData.collectionData.mvd}
                     onChange={(e) => handleChange('collectionData', 'mvd', e.target.value, null, 'sub')}
                     required
@@ -138,7 +138,7 @@ const DataEntry = ({ isOpen, onClose, initialData, onSave }) => {
                   <label className="form-label text-muted">Total Quantity Received</label>
                   <input
                     type="number"
-                    className="form-control bg-dark text-white border-secondary"
+                    className="form-control"
                     value={formData.milkReceived.total}
                     onChange={(e) => handleChange('milkReceived', 'total', e.target.value, null, 'sub')}
                     required
@@ -148,7 +148,7 @@ const DataEntry = ({ isOpen, onClose, initialData, onSave }) => {
                   <label className="form-label text-muted">Receiving Unit Name</label>
                   <input
                     type="text"
-                    className="form-control bg-dark text-white border-secondary"
+                    className="form-control"
                     value={formData.milkReceived.unit}
                     onChange={(e) => {
                       const val = e.target.value;
@@ -168,7 +168,7 @@ const DataEntry = ({ isOpen, onClose, initialData, onSave }) => {
                   <label className="form-label text-muted">Purchase Source Unit</label>
                   <input
                     type="text"
-                    className="form-control bg-dark text-white border-secondary"
+                    className="form-control"
                     value={formData.purchase.unitName}
                     onChange={(e) => {
                       const val = e.target.value;
@@ -185,7 +185,7 @@ const DataEntry = ({ isOpen, onClose, initialData, onSave }) => {
                   <label className="form-label text-muted">Purchase Quantity (Ltr)</label>
                   <input
                     type="number"
-                    className="form-control bg-dark text-white border-secondary"
+                    className="form-control"
                     value={formData.purchase.quantity}
                     onChange={(e) => {
                       const val = Number(e.target.value) || 0;
@@ -211,7 +211,7 @@ const DataEntry = ({ isOpen, onClose, initialData, onSave }) => {
                     <label className="form-label text-muted">{cat.name}</label>
                     <input
                       type="number"
-                      className="form-control bg-dark text-white border-secondary"
+                      className="form-control"
                       value={cat.value}
                       onChange={(e) => handleChange('milkSale', 'value', e.target.value, idx)}
                     />
@@ -226,7 +226,7 @@ const DataEntry = ({ isOpen, onClose, initialData, onSave }) => {
                     <label className="form-label text-muted">{cat.name}</label>
                     <input
                       type="number"
-                      className="form-control bg-dark text-white border-secondary"
+                      className="form-control"
                       value={cat.value}
                       onChange={(e) => handleChange('curdSale', 'value', e.target.value, idx)}
                     />

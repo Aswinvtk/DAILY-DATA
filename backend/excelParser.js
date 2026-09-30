@@ -3,143 +3,188 @@ const require = createRequire(import.meta.url);
 const XLSX = require('xlsx');
 
 /**
- * Wayanad Daily Sales Excel Parser
+ * MBS Product Report Parser
  *
- * Reads an .xlsx / .xls workbook uploaded by the user.
- * Scans all sheets for a column named "Net Grp Qty" (case-insensitive).
- * Maps each product row to a dashboard category by matching product name keywords.
- *
- * Returned categories (Net Grp Qty totals):
- *   milkNetSale      — Milk / Milk Packets (single line)
- *   curdNetSale      — Curd (all curd varieties)
- *   gheeNetSale      — Ghee
- *   pedaNetSale      — Peda
- *   paladaNetSale    — Palada / Palada Payasam
- *   sambaramNetSale  — Sambaram
- *   butterNetSale    — Butter
- *   uhtMilkNetSale   — UHT Milk
- *   purchaseTotal    — Purchase (if a Purchase row exists)
+ * Identifies products primarily by Product Code.
+ * Applies SKU Pack Size Multiplier to convert packet/unit counts into actual volume (L) or weight (Kg).
+ * Consolidates converted quantities into 10 Dashboard Product Groups:
+ *   - Milk (codes: 45, 54, 53, 64, 81)
+ *   - Curd (codes: 90, 1530, 50, 67, 1474, 39, 1526)
+ *   - Ghee (codes: 9, 10, 11, 18, 199, 202, 203, 1344, 1310, 1314, 394, 395, 396, 397, 1514, 1515)
+ *   - Butter (codes: 230, 232, 361, 358, 391, 392, 406, 407, 1488, 360)
+ *   - Paneer (codes: 383, 249, 250, 1511, 1512)
+ *   - Peda (codes: 1363, 1362, 1407)
+ *   - Palada (codes: 16, 398)
+ *   - Ghee Biscuit (codes: 462, 1479)
+ *   - Condensed Milk (code: 5107)
+ *   - Other (codes: 317, 314, 1339 and extensible)
  */
 
-// ─── Category keyword map ─────────────────────────────────────────────────────
-const CATEGORY_MAP = [
-  { key: 'uhtMilkNetSale', keywords: ['uht'] },
-  { key: 'gheeNetSale', keywords: ['ghee'] },
-  { key: 'pedaNetSale', keywords: ['peda'] },
-  { key: 'paladaNetSale', keywords: ['palada'] },
-  { key: 'sambaramNetSale', keywords: ['sambaram'] },
-  { key: 'butterNetSale', keywords: ['butter'] },
-  { key: 'curdNetSale', keywords: ['curd', 'katti', 'moru', 'kanthari', 'probiotic', 'thairu', 'curds'] },
-  // Milk: matches any milk, HTM, Toned, Cow, Smart, Full Cream, etc.
-  { key: 'milkNetSale', keywords: ['milk', 'htm', 'toned', 'std', 'smart', 'cow milk', 'full cream', 'pkt milk'] },
-];
+function parseNum(val) {
+  if (val === null || val === undefined || val === '') return 0;
+  const num = parseFloat(String(val).replace(/,/g, ''));
+  return isNaN(num) ? 0 : num;
+}
 
-const PURCHASE_KEYWORDS = ['purchase', 'purchased'];
+export function parseMBSReport(buffer, productMasterMap) {
+  const workbook = XLSX.read(buffer, { type: 'buffer' });
+  const firstSheetName = workbook.SheetNames[0];
+  const sheet = workbook.Sheets[firstSheetName];
+  const rawRows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '', raw: true });
 
-function classifyProduct(productName) {
-  if (!productName) return null;
-  const lc = String(productName).toLowerCase().trim();
-  for (const cat of CATEGORY_MAP) {
-    if (cat.keywords.some(kw => lc.includes(kw))) return cat.key;
+  // Default structure for output
+  const createGroupObj = (unit = 'Kg') => ({
+    totalOB: 0,
+    totalNetProd: 0,
+    totalInvQty: 0,
+    totalCB: 0,
+    unit,
+    products: []
+  });
+
+  const productGroups = {
+    milk: createGroupObj('L'),
+    curd: createGroupObj('L'),
+    ghee: createGroupObj('L'),
+    butter: createGroupObj('Kg'),
+    paneer: createGroupObj('Kg'),
+    peda: createGroupObj('Kg'),
+    palada: createGroupObj('Kg'),
+    gheeBiscuit: createGroupObj('Kg'),
+    condensedMilk: createGroupObj('Kg'),
+    other: createGroupObj('Kg')
+  };
+
+  if (!rawRows || rawRows.length < 5) {
+    return { productGroups, unmappedProducts: [] };
   }
-  return null;
-}
 
-function isPurchaseRow(productName) {
-  if (!productName) return false;
-  const lc = String(productName).toLowerCase().trim();
-  return PURCHASE_KEYWORDS.some(kw => lc.includes(kw));
-}
+  // Find header row (usually contains 'Code', 'Product', 'OB', 'Net', 'Invoiced Qty', 'CB')
+  let codeColIdx = 1;
+  let nameColIdx = 2;
+  let obColIdx = 3;
+  let prodNetColIdx = 6;
+  let invQtyColIdx = 10;
+  let cbColIdx = 21;
+  let headerRowIdx = -1;
 
-function detectColumns(rows) {
-  for (let i = 0; i < Math.min(rows.length, 15); i++) {
-    const row = rows[i];
-    if (!row || typeof row !== 'object') continue;
-    const keys = Object.keys(row);
-    let nameCol = null, qtyCol = null;
-    for (const k of keys) {
-      const val = String(row[k] || '').toLowerCase().trim();
-      if (!nameCol && (val.includes('product') || val.includes('description') || val.includes('item') || val.includes('name') || val.includes('particulars'))) nameCol = k;
-      if (!qtyCol && (val.includes('net grp qty') || val.includes('net group qty') || val.includes('netgrpqty') || val === 'net qty' || val === 'net grp' || val.includes('wayanad qty') || val.includes('wyd qty') || val === 'qty')) qtyCol = k;
+  for (let i = 0; i < Math.min(15, rawRows.length); i++) {
+    const row = rawRows[i];
+    if (!row || !Array.isArray(row)) continue;
+    let foundCode = false, foundOB = false;
+    for (let j = 0; j < row.length; j++) {
+      const cell = String(row[j] || '').toLowerCase().trim();
+      if (cell === 'code' || cell === 'product code') { codeColIdx = j; foundCode = true; }
+      else if (cell === 'product' || cell === 'product name') { nameColIdx = j; }
+      else if (cell === 'ob') { obColIdx = j; foundOB = true; }
+      else if (cell === 'net' && j >= 4) { prodNetColIdx = j; }
+      else if (cell.includes('invoiced') || cell === 'inv qty') { invQtyColIdx = j; }
+      else if (cell === 'cb') { cbColIdx = j; }
     }
-    if (nameCol && qtyCol) return { nameCol, qtyCol, headerRowIdx: i };
+    if (foundCode && foundOB) {
+      headerRowIdx = i;
+      break;
+    }
   }
-  return null;
+
+  const startRow = headerRowIdx >= 0 ? headerRowIdx + 1 : 5;
+  const unmappedProducts = [];
+
+  for (let i = startRow; i < rawRows.length; i++) {
+    const row = rawRows[i];
+    if (!row || row.length <= codeColIdx) continue;
+
+    const rawCode = row[codeColIdx];
+    if (rawCode === undefined || rawCode === null || rawCode === '') continue;
+
+    const pCode = Number(rawCode);
+    if (isNaN(pCode)) continue; // skip non-numeric headers or footer totals
+
+    const pName = String(row[nameColIdx] || '').trim();
+    const obPack = parseNum(row[obColIdx]);
+    const prodNetPack = parseNum(row[prodNetColIdx]);
+    const invQtyPack = parseNum(row[invQtyColIdx]);
+    const cbPack = parseNum(row[cbColIdx]);
+
+    // Lookup in Product Master Map
+    const masterInfo = productMasterMap.get(pCode);
+
+    if (masterInfo) {
+      const multiplier = masterInfo.groupValue !== undefined && masterInfo.groupValue !== null 
+        ? Number(masterInfo.groupValue) 
+        : (Number(masterInfo.packSizeMultiplier) || 1.0);
+      const obConverted = obPack * multiplier;
+      const prodNetConverted = prodNetPack * multiplier;
+      const invQtyConverted = invQtyPack * multiplier;
+      const cbConverted = cbPack * multiplier;
+
+      // Map group string or subgrpName to key in productGroups object
+      let groupKey = null;
+      const grp = masterInfo.group || masterInfo.subgrpName || '';
+      const subCode = Number(masterInfo.subgrpCode);
+
+      if (grp === 'Milk' || grp === 'Milk Packets' || subCode === 1) groupKey = 'milk';
+      else if (grp === 'Curd' || grp === 'Sambaram' || grp === 'Lassi' || subCode === 2 || subCode === 3 || subCode === 51) groupKey = 'curd';
+      else if (grp === 'Ghee' || subCode === 5) groupKey = 'ghee';
+      else if (grp === 'Butter' || subCode === 6) groupKey = 'butter';
+      else if (grp === 'Paneer' || subCode === 33) groupKey = 'paneer';
+      else if (grp === 'Peda' || subCode === 4) groupKey = 'peda';
+      else if (grp === 'Palada' || subCode === 7) groupKey = 'palada';
+      else if (grp === 'Ghee Biscuit' || grp === 'Biscuits' || subCode === 55) groupKey = 'gheeBiscuit';
+      else if (grp === 'Condensed Milk') groupKey = 'condensedMilk';
+      else groupKey = 'other';
+
+      const targetGroup = productGroups[groupKey];
+      if (targetGroup) {
+        targetGroup.totalOB += obConverted;
+        targetGroup.totalNetProd += prodNetConverted;
+        targetGroup.totalInvQty += invQtyConverted;
+        targetGroup.totalCB += cbConverted;
+
+        targetGroup.products.push({
+          code: pCode,
+          name: pName || masterInfo.productName,
+          packSize: multiplier,
+          obPack,
+          obConverted,
+          prodNetPack,
+          prodNetConverted,
+          invQtyPack,
+          invQtyConverted,
+          cbPack,
+          cbConverted
+        });
+      }
+    } else {
+      unmappedProducts.push({ code: pCode, name: pName, ob: obPack, prodNet: prodNetPack, invQty: invQtyPack, cb: cbPack });
+    }
+  }
+
+  // Round numbers for clean display
+  for (const groupKey of Object.keys(productGroups)) {
+    const g = productGroups[groupKey];
+    g.totalOB = Number(g.totalOB.toFixed(2));
+    g.totalNetProd = Number(g.totalNetProd.toFixed(2));
+    g.totalInvQty = Number(g.totalInvQty.toFixed(2));
+    g.totalCB = Number(g.totalCB.toFixed(2));
+    for (const p of g.products) {
+      p.obConverted = Number(p.obConverted.toFixed(2));
+      p.prodNetConverted = Number(p.prodNetConverted.toFixed(2));
+      p.invQtyConverted = Number(p.invQtyConverted.toFixed(2));
+      p.cbConverted = Number(p.cbConverted.toFixed(2));
+    }
+  }
+
+  return { productGroups, unmappedProducts };
 }
 
+/** Legacy Fallback */
 export function parseWayanadExcel(buffer) {
-  const result = {
+  return {
     milkNetSale: 0, curdNetSale: 0, gheeNetSale: 0,
     pedaNetSale: 0, paladaNetSale: 0, sambaramNetSale: 0,
     butterNetSale: 0, uhtMilkNetSale: 0,
     purchaseTotal: 0, purchaseUnitName: '',
     extractedFields: []
   };
-
-  let workbook;
-  try {
-    workbook = XLSX.read(buffer, { type: 'buffer' });
-  } catch (err) {
-    console.error('[excelParser] Failed to read workbook:', err.message);
-    return result;
-  }
-
-  for (const sheetName of workbook.SheetNames) {
-    const sheet = workbook.Sheets[sheetName];
-    const rows = XLSX.utils.sheet_to_json(sheet, { defval: '', raw: false, blankrows: false });
-    if (!rows || rows.length < 3) continue;
-
-    const detected = detectColumns(rows);
-
-    if (!detected) {
-      // Fallback: raw array mode
-      const arrRows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '', raw: false });
-      if (arrRows.length < 3) continue;
-      let headerIdx = -1, nameColIdx = -1, qtyColIdx = -1;
-      for (let i = 0; i < Math.min(arrRows.length, 15); i++) {
-        const row = arrRows[i];
-        for (let j = 0; j < row.length; j++) {
-          const val = String(row[j] || '').toLowerCase().trim();
-          if (nameColIdx < 0 && (val.includes('product') || val.includes('description') || val.includes('particulars') || val.includes('item'))) nameColIdx = j;
-          if (qtyColIdx < 0 && (val.includes('net grp qty') || val.includes('net group qty') || val.includes('netgrpqty') || val === 'net qty')) qtyColIdx = j;
-        }
-        if (nameColIdx >= 0 && qtyColIdx >= 0) { headerIdx = i; break; }
-      }
-      if (headerIdx < 0 || qtyColIdx < 0) continue;
-      for (let i = headerIdx + 1; i < arrRows.length; i++) {
-        const row = arrRows[i];
-        if (!row || row.length === 0) continue;
-        const productName = nameColIdx >= 0 ? String(row[nameColIdx] || '') : '';
-        const qty = parseFloat(String(row[qtyColIdx] || '0').replace(/,/g, '')) || 0;
-        if (!productName.trim() && qty === 0) continue;
-        const category = classifyProduct(productName);
-        if (category) { result[category] += qty; if (!result.extractedFields.includes(category)) result.extractedFields.push(category); }
-        else if (isPurchaseRow(productName)) { result.purchaseTotal += qty; if (!result.extractedFields.includes('purchase')) result.extractedFields.push('purchase'); }
-      }
-      if (result.extractedFields.length > 0) break;
-      continue;
-    }
-
-    const { nameCol, qtyCol, headerRowIdx } = detected;
-    for (let i = headerRowIdx + 1; i < rows.length; i++) {
-      const row = rows[i];
-      const productName = String(row[nameCol] || '');
-      const qty = parseFloat(String(row[qtyCol] || '0').replace(/,/g, '')) || 0;
-      if (!productName.trim() && qty === 0) continue;
-      const category = classifyProduct(productName);
-      if (category) { result[category] += qty; if (!result.extractedFields.includes(category)) result.extractedFields.push(category); }
-      else if (isPurchaseRow(productName)) { result.purchaseTotal += qty; if (!result.extractedFields.includes('purchase')) result.extractedFields.push('purchase'); }
-    }
-    if (result.extractedFields.length > 0) break;
-  }
-
-  // Round all numeric values
-  for (const key of Object.keys(result)) {
-    if (typeof result[key] === 'number') result[key] = Math.round(result[key]);
-  }
-
-  console.log('[excelParser] Extracted fields:', result.extractedFields);
-  console.log('[excelParser] Totals:', { milk: result.milkNetSale, curd: result.curdNetSale, ghee: result.gheeNetSale, peda: result.pedaNetSale, palada: result.paladaNetSale, sambaram: result.sambaramNetSale, butter: result.butterNetSale, uht: result.uhtMilkNetSale, purchase: result.purchaseTotal });
-
-  return result;
 }

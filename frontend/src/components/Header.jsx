@@ -1,5 +1,5 @@
 import React from 'react';
-import { Calendar, Clock, Tv, Sun, Moon, RefreshCw, Edit2 } from 'lucide-react';
+import { Calendar, Clock, Tv, Sun, Moon, RefreshCw, Edit2, Database } from 'lucide-react';
 const Header = ({
   selectedDate,
   onDateChange,
@@ -8,6 +8,7 @@ const Header = ({
   lastUpdated,
   onManualRefresh,
   onOpenDataEntry,
+  onOpenProductMapping,
   currentDateStr,
   liveTimeStr
 }) => {
@@ -81,58 +82,58 @@ const Header = ({
       </div>
 
       <div className="d-flex align-items-center gap-3">
-        {/* Time Card (First) */}
+        {/* Compact Status Cluster: Day + Date + Time + Last Updated */}
         <div 
-          className="d-flex align-items-center text-white px-4 py-2 rounded-3" 
-          style={{ background: 'rgba(255, 255, 255, 0.08)', border: '1px solid rgba(255, 255, 255, 0.15)', minWidth: '160px' }}
+          className="d-flex align-items-center text-white px-3 py-2 rounded-3 gap-3" 
+          style={{ background: 'rgba(255, 255, 255, 0.06)', border: '1px solid rgba(255, 255, 255, 0.12)' }}
         >
-          <Clock className="me-3 text-warning flex-shrink-0" size={28} />
-          <div className="d-flex flex-column justify-content-center" style={{ lineHeight: 1.2 }}>
-            <span style={{ fontSize: '0.75rem', fontWeight: 600, opacity: 0.85, color: '#ffffff', letterSpacing: '0.5px', textTransform: 'uppercase' }}>
-              Time
-            </span>
-            <span className="fw-bold text-white" style={{ fontSize: '1.35rem', letterSpacing: '1px', fontFamily: 'var(--font-sans)' }}>
+          {/* Date & Day */}
+          <div className="d-flex align-items-center gap-2">
+            <Calendar size={16} className="text-white opacity-75 flex-shrink-0" />
+            <div style={{ lineHeight: 1.25 }}>
+              <div className="fw-bold" style={{ fontSize: '0.82rem', letterSpacing: '0.3px' }}>
+                {fullDayName}, {dateStr}
+              </div>
+            </div>
+          </div>
+
+          {/* Separator */}
+          <div style={{ width: '1px', height: '24px', background: 'rgba(255,255,255,0.2)' }} />
+
+          {/* Time */}
+          <div className="d-flex align-items-center gap-2">
+            <Clock size={16} className="text-white opacity-75 flex-shrink-0" />
+            <span className="fw-bold" style={{ fontSize: '0.95rem', letterSpacing: '0.5px', fontVariantNumeric: 'tabular-nums' }}>
               {liveTimeStr}
             </span>
           </div>
-        </div>
 
-        {/* Date Card (Second) */}
-        <div 
-          className="d-flex align-items-center text-white px-4 py-2 rounded-3" 
-          style={{ background: 'rgba(255, 255, 255, 0.08)', border: '1px solid rgba(255, 255, 255, 0.15)', minWidth: '175px' }}
-        >
-          <Calendar className="me-3 text-warning flex-shrink-0" size={28} />
-          <div className="d-flex flex-column justify-content-center" style={{ lineHeight: 1.2 }}>
-            <span className="fw-bold text-warning" style={{ fontSize: '0.85rem', letterSpacing: '0.5px', textTransform: 'uppercase' }}>
-              {fullDayName}
-            </span>
-            <span className="fw-bold text-white" style={{ fontSize: '1.2rem', letterSpacing: '0.5px' }}>
-              {dateStr}
-            </span>
+          {/* Separator */}
+          <div style={{ width: '1px', height: '24px', background: 'rgba(255,255,255,0.2)' }} />
+
+          {/* Last Updated */}
+          <div style={{ lineHeight: 1.25, fontSize: '0.72rem' }}>
+            <div className="opacity-65">Updated</div>
+            <div className="fw-bold" style={{ fontVariantNumeric: 'tabular-nums' }}>{lastUpdated}</div>
           </div>
         </div>
 
         {/* Controls Section */}
-        <div className="d-flex align-items-center gap-2 border-start border-white border-opacity-25 ps-4">
-          {/* Date Selector Display: Report Date & Last Updated (Replaces Historical button) */}
-          <div className="d-flex align-items-center text-white me-2">
+        <div className="d-flex align-items-center gap-2 border-start border-white border-opacity-25 ps-3">
+          {/* Date Selector: Report Date */}
+          <div className="d-flex align-items-center text-white me-1">
             <div className="text-end me-2" style={{ lineHeight: 1.35 }}>
-              <div style={{ fontSize: '0.78rem' }}>
-                <span className="opacity-75">Report Date : </span>
-                <span className="fw-bold text-warning">{displayDate}</span>
-              </div>
-              <div style={{ fontSize: '0.7rem' }}>
-                <span className="opacity-75">Last Updated : </span>
-                <span className="fw-semibold">{lastUpdated}</span>
+              <div style={{ fontSize: '0.72rem' }}>
+                <span className="opacity-75">Report: </span>
+                <span className="fw-bold" style={{ color: '#fbbf24' }}>{displayDate}</span>
               </div>
             </div>
             <div 
-              className="position-relative bg-white bg-opacity-10 p-2 rounded cursor-pointer hover-bg-opacity-20 d-flex align-items-center justify-content-center" 
-              style={{ width: '36px', height: '36px' }}
+              className="position-relative bg-white bg-opacity-10 p-2 rounded cursor-pointer d-flex align-items-center justify-content-center" 
+              style={{ width: '32px', height: '32px' }}
               title="Select date to view corresponding data"
             >
-              <Calendar size={18} className="text-warning" />
+              <Calendar size={14} style={{ color: '#fbbf24' }} />
               <input
                 type="date"
                 value={selectedDate}
@@ -142,50 +143,70 @@ const Header = ({
             </div>
           </div>
 
-          {/* Data Entry Panel Button */}
+          {/* Data Entry Panel Button — SOLID PRIMARY */}
           <button
             onClick={onOpenDataEntry}
-            className="btn btn-sm btn-outline-warning d-flex align-items-center gap-1 fw-bold px-3"
+            className="btn btn-sm d-flex align-items-center gap-1 fw-bold px-3"
+            style={{ 
+              background: '#0059a5', 
+              color: '#ffffff', 
+              border: '1px solid rgba(255,255,255,0.2)',
+              fontSize: '0.78rem',
+              letterSpacing: '0.3px'
+            }}
             title="Open Data Entry Control Panel"
           >
             <Edit2 size={13} />
             DATA ENTRY
           </button>
 
-          {/* Refresh Action */}
+          {/* Refresh Action — Ghost Icon Button */}
           <button
             onClick={onManualRefresh}
-            className="btn btn-sm btn-outline-light p-2"
+            className="btn btn-sm p-2 d-flex align-items-center justify-content-center"
+            style={{
+              background: 'transparent',
+              border: '1px solid rgba(255,255,255,0.2)',
+              color: 'rgba(255,255,255,0.85)',
+              width: '32px',
+              height: '32px'
+            }}
             title="Force Update Data"
           >
-            <RefreshCw size={15} />
+            <RefreshCw size={14} />
           </button>
 
-          {/* Fullscreen Mode */}
+          {/* Fullscreen Mode — Ghost Icon Button */}
           <button
             onClick={toggleFullscreen}
             onTouchEnd={toggleFullscreen}
-            className="btn btn-sm btn-outline-light p-2"
+            className="btn btn-sm p-2 d-flex align-items-center justify-content-center"
+            style={{
+              background: 'transparent',
+              border: '1px solid rgba(255,255,255,0.2)',
+              color: 'rgba(255,255,255,0.85)',
+              width: '32px',
+              height: '32px'
+            }}
             title="Toggle TV Fullscreen Mode"
           >
-            <Tv size={15} />
+            <Tv size={14} />
           </button>
 
-          {/* Theme Switcher */}
+          {/* Theme Switcher — Compact Icon-Only Toggle */}
           <button
             onClick={toggleTheme}
-            className="btn btn-sm btn-warning d-flex align-items-center gap-1 px-3 fw-bold ms-1"
-            style={{ fontSize: '0.75rem' }}
+            className="btn btn-sm p-2 d-flex align-items-center justify-content-center"
+            style={{
+              background: theme === 'light' ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.1)',
+              border: '1px solid rgba(255,255,255,0.2)',
+              color: '#fbbf24',
+              width: '32px',
+              height: '32px'
+            }}
+            title={theme === 'light' ? 'Switch to Dark Theme' : 'Switch to Light Theme'}
           >
-            {theme === 'light' ? (
-              <>
-                <Moon size={14} /> ☾ Dark
-              </>
-            ) : (
-              <>
-                <Sun size={14} /> 🌞 Light
-              </>
-            )}
+            {theme === 'light' ? <Moon size={14} /> : <Sun size={14} />}
           </button>
         </div>
       </div>

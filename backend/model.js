@@ -60,6 +60,134 @@ const DailyOperationsSchema = new mongoose.Schema({
   // Alerts & Updates
   alerts: [{ type: String }],
 
+  // New MBS Product Report Consolidated Dashboard Groups & Manual Milk Collection
+  milkCollectionDetails: {
+    wyd: { type: Number, default: 0 },
+    mdy: { type: Number, default: 0 },
+    outsidePurchases: [{
+      sourceUnit: { type: String, default: '' },
+      quantity: { type: Number, default: 0 }
+    }],
+    stockOuts: [{
+      destinationUnit: { type: String, default: '' },
+      quantity: { type: Number, default: 0 }
+    }],
+    totalCollection: { type: Number, default: 0 }
+  },
+
+  // Calculated Product Groups from MBS Excel
+  mbsProductGroups: {
+    milk: {
+      totalOB: { type: Number, default: 0 },
+      totalNetProd: { type: Number, default: 0 },
+      totalInvQty: { type: Number, default: 0 },
+      totalCB: { type: Number, default: 0 },
+      unit: { type: String, default: 'L' },
+      products: [{
+        code: Number,
+        name: String,
+        packSize: Number,
+        obPack: Number,
+        obConverted: Number,
+        prodNetPack: Number,
+        prodNetConverted: Number,
+        invQtyPack: Number,
+        invQtyConverted: Number,
+        cbPack: Number,
+        cbConverted: Number
+      }]
+    },
+    curd: {
+      totalOB: { type: Number, default: 0 },
+      totalNetProd: { type: Number, default: 0 },
+      totalInvQty: { type: Number, default: 0 },
+      totalCB: { type: Number, default: 0 },
+      unit: { type: String, default: 'Kg' },
+      products: [{
+        code: Number,
+        name: String,
+        packSize: Number,
+        obPack: Number,
+        obConverted: Number,
+        prodNetPack: Number,
+        prodNetConverted: Number,
+        invQtyPack: Number,
+        invQtyConverted: Number,
+        cbPack: Number,
+        cbConverted: Number
+      }]
+    },
+    ghee: {
+      totalOB: { type: Number, default: 0 },
+      totalNetProd: { type: Number, default: 0 },
+      totalInvQty: { type: Number, default: 0 },
+      totalCB: { type: Number, default: 0 },
+      unit: { type: String, default: 'L' },
+      products: [{
+        code: Number,
+        name: String,
+        packSize: Number,
+        obPack: Number,
+        obConverted: Number,
+        prodNetPack: Number,
+        prodNetConverted: Number,
+        invQtyPack: Number,
+        invQtyConverted: Number,
+        cbPack: Number,
+        cbConverted: Number
+      }]
+    },
+    butter: {
+      totalOB: { type: Number, default: 0 },
+      totalNetProd: { type: Number, default: 0 },
+      totalInvQty: { type: Number, default: 0 },
+      totalCB: { type: Number, default: 0 },
+      unit: { type: String, default: 'Kg' }
+    },
+    paneer: {
+      totalOB: { type: Number, default: 0 },
+      totalNetProd: { type: Number, default: 0 },
+      totalInvQty: { type: Number, default: 0 },
+      totalCB: { type: Number, default: 0 },
+      unit: { type: String, default: 'Kg' }
+    },
+    peda: {
+      totalOB: { type: Number, default: 0 },
+      totalNetProd: { type: Number, default: 0 },
+      totalInvQty: { type: Number, default: 0 },
+      totalCB: { type: Number, default: 0 },
+      unit: { type: String, default: 'Kg' }
+    },
+    palada: {
+      totalOB: { type: Number, default: 0 },
+      totalNetProd: { type: Number, default: 0 },
+      totalInvQty: { type: Number, default: 0 },
+      totalCB: { type: Number, default: 0 },
+      unit: { type: String, default: 'Kg' }
+    },
+    gheeBiscuit: {
+      totalOB: { type: Number, default: 0 },
+      totalNetProd: { type: Number, default: 0 },
+      totalInvQty: { type: Number, default: 0 },
+      totalCB: { type: Number, default: 0 },
+      unit: { type: String, default: 'Kg' }
+    },
+    condensedMilk: {
+      totalOB: { type: Number, default: 0 },
+      totalNetProd: { type: Number, default: 0 },
+      totalInvQty: { type: Number, default: 0 },
+      totalCB: { type: Number, default: 0 },
+      unit: { type: String, default: 'Kg' }
+    },
+    other: {
+      totalOB: { type: Number, default: 0 },
+      totalNetProd: { type: Number, default: 0 },
+      totalInvQty: { type: Number, default: 0 },
+      totalCB: { type: Number, default: 0 },
+      unit: { type: String, default: 'Kg' }
+    }
+  },
+
   // Source File Information (Excel)
   excelFileName: { type: String, default: '' },
   uploadedBy: { type: String, default: 'Admin' },
