@@ -4,7 +4,7 @@ import {
   Plus, Trash2, Settings, Database, Layers, CheckCircle2, RotateCcw
 } from 'lucide-react';
 
-const ReportEntry = ({ selectedDate, onBackToDashboard, onSave, fetchReportData, initialShowMasterModal, onCloseMasterModal }) => {
+const ReportEntry = ({ selectedDate, onBackToDashboard, onSave, fetchReportData, initialShowMasterModal, onCloseMasterModal, theme }) => {
   const [reportDate, setReportDate] = useState(selectedDate);
   const [reportStatus, setReportStatus] = useState('Draft');
   const [lastUpdatedTime, setLastUpdatedTime] = useState('N/A');
@@ -133,8 +133,7 @@ const ReportEntry = ({ selectedDate, onBackToDashboard, onSave, fetchReportData,
 
   // Helper calculation for total milk collection
   const calcOutsideTotal = () => outsidePurchases.reduce((s, item) => s + (Number(item.quantity) || 0), 0);
-  const calcStockOutTotal = () => stockOuts.reduce((s, item) => s + (Number(item.quantity) || 0), 0);
-  const calcTotalCollection = () => Number((Number(wydCol) + Number(mdyCol) + calcOutsideTotal() - calcStockOutTotal()).toFixed(2));
+  const calcTotalCollection = () => Number((Number(wydCol) + Number(mdyCol)).toFixed(2));
 
   // Dynamic row additions for Outside Purchases & Stock Outs
   const addOutsidePurchaseRow = () => setOutsidePurchases([...outsidePurchases, { sourceUnit: '', quantity: 0 }]);
@@ -511,24 +510,30 @@ const ReportEntry = ({ selectedDate, onBackToDashboard, onSave, fetchReportData,
     }
   };
 
-  // Theme-aware style tokens for consistent contrast
-  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  // Theme-aware style tokens — aligned with modern dashboard palette
+  const isDark = theme ? theme === 'dark' : document.documentElement.getAttribute('data-theme') === 'dark';
   const t = {
-    cardBg: isDark ? '#1e293b' : '#ffffff',
-    cardBorder: isDark ? '#334155' : '#cbd5e1',
-    inputBg: isDark ? '#0f172a' : '#ffffff',
-    inputBorder: isDark ? '#475569' : '#cbd5e1',
-    inputText: isDark ? '#e2e8f0' : '#0f172a',
-    labelText: isDark ? '#94a3b8' : '#334155',
-    headerText: isDark ? '#f8fafc' : '#0f172a',
-    mutedText: isDark ? '#94a3b8' : '#64748b',
-    tableRowBg: isDark ? '#1e293b' : '#f8fafc',
-    tableBorder: isDark ? '#334155' : '#e2e8f0',
-    successText: isDark ? '#4ade80' : '#166534',
-    infoText: isDark ? '#38bdf8' : '#0369a1',
-    sectionHeaderBg: isDark ? '#0f172a' : '#f1f5f9',
-    pillBg: isDark ? '#334155' : '#e2e8f0',
-    pillText: isDark ? '#f8fafc' : '#0f172a',
+    cardBg:           isDark ? '#0e172e' : '#ffffff',
+    cardBorder:       isDark ? 'rgba(255, 255, 255, 0.08)' : '#e2e8f0',
+    inputBg:          isDark ? '#070d19' : '#ffffff',
+    inputBorder:      isDark ? 'rgba(255, 255, 255, 0.15)' : '#cbd5e1',
+    inputText:        isDark ? '#f8fafc' : '#0f172a',
+    labelText:        isDark ? '#94a3b8' : '#64748b',
+    headerText:       isDark ? '#f8fafc' : '#0f172a',
+    mutedText:        isDark ? '#94a3b8' : '#64748b',
+    tableRowBg:       isDark ? '#0e172e' : '#ffffff',
+    tableBorder:      isDark ? 'rgba(255, 255, 255, 0.08)' : '#e2e8f0',
+    numValue:         isDark ? '#f8fafc' : '#0f172a',
+    numSubtle:        isDark ? '#cbd5e1' : '#334155',
+    infoText:         isDark ? '#38bdf8' : '#1d4ed8',
+    brownText:        isDark ? '#f59e0b' : '#b45309',
+    dangerText:       isDark ? '#f87171' : '#dc2626',
+    cautionText:      isDark ? '#f59e0b' : '#b45309',
+    sectionHeaderBg:  isDark ? '#0b1120' : '#f8fafc',
+    pillBg:           isDark ? '#17233f' : '#f1f5f9',
+    pillText:         isDark ? '#cbd5e1' : '#334155',
+    btnPrimaryBg:     isDark ? '#1d4ed8' : '#1d4ed8',
+    btnPrimaryText:   '#ffffff',
   };
 
   return (
@@ -543,9 +548,9 @@ const ReportEntry = ({ selectedDate, onBackToDashboard, onSave, fetchReportData,
           {/* Row 1: Product Master Button & Filename Status Badge */}
           <div className="d-flex align-items-center justify-content-between mb-2 flex-shrink-0">
             <button 
-              className="btn btn-outline-primary btn-sm py-1 px-2 d-flex align-items-center gap-1 fw-bold"
+              className="btn btn-sm py-1 px-2 d-flex align-items-center gap-1 fw-bold"
               onClick={() => setShowMasterModal(true)}
-              style={{ fontSize: '0.75rem' }}
+              style={{ fontSize: '0.75rem', background: 'transparent', border: `1px solid ${t.cardBorder}`, color: t.headerText }}
             >
               <Settings size={14} /> Product Master Mappings
             </button>
@@ -555,7 +560,7 @@ const ReportEntry = ({ selectedDate, onBackToDashboard, onSave, fetchReportData,
                 📄 {excelInfo.name}
               </span>
             ) : (
-              <span className={`badge px-2 py-1 fw-bold text-uppercase ${reportStatus === 'Submitted' ? 'bg-success' : reportStatus === 'Updated' ? 'bg-primary' : ''}`} style={{ fontSize: '0.7rem', ...(reportStatus === 'Draft' ? { background: '#fbbf24', color: '#0f172a' } : {}) }}>
+              <span className={`badge px-2 py-1 fw-bold text-uppercase`} style={{ fontSize: '0.7rem', background: reportStatus === 'Submitted' ? 'var(--status-ok-bg)' : reportStatus === 'Updated' ? 'var(--sale-bg)' : 'var(--status-draft-bg)', color: reportStatus === 'Submitted' ? 'var(--status-ok-text)' : reportStatus === 'Updated' ? 'var(--sale-label)' : 'var(--status-draft-text)' }}>
                 STATUS: {reportStatus}
               </span>
             )}
@@ -590,8 +595,8 @@ const ReportEntry = ({ selectedDate, onBackToDashboard, onSave, fetchReportData,
             onClick={() => fileInputRef.current.click()}
             style={{ 
               cursor: 'pointer', 
-              border: `2px dashed ${isDark ? '#475569' : '#94a3b8'}`, 
-              background: isDark ? 'rgba(59,130,246,0.06)' : 'rgba(59,130,246,0.04)', 
+              border: `2px dashed ${t.cardBorder}`, 
+              background: t.tableRowBg, 
               minHeight: '62px',
               transition: 'border-color 0.2s, background 0.2s'
             }}
@@ -625,7 +630,7 @@ const ReportEntry = ({ selectedDate, onBackToDashboard, onSave, fetchReportData,
           <div className="card shadow-sm flex-grow-1 d-flex flex-column mb-2" style={{ background: t.cardBg, border: `1px solid ${t.cardBorder}`, overflow: 'hidden' }}>
             <div className="fw-bold d-flex justify-content-between align-items-center py-2 px-3 flex-shrink-0" style={{ fontSize: '0.85rem', background: t.sectionHeaderBg, borderBottom: `1px solid ${t.cardBorder}`, color: t.headerText }}>
               <span>🥛 Milk Collection</span>
-              <span className="font-monospace rounded-2 py-1 px-2" style={{ fontSize: '0.75rem', background: isDark ? 'rgba(74,222,128,0.15)' : 'rgba(22,101,52,0.1)', color: t.successText, fontWeight: 700 }}>
+              <span className="font-monospace rounded-2 py-1 px-2" style={{ fontSize: '0.75rem', background: t.sectionHeaderBg, color: t.numValue, fontWeight: 700, border: `1px solid ${t.cardBorder}` }}>
                 {calcTotalCollection().toLocaleString()} Ltr
               </span>
             </div>
@@ -633,9 +638,9 @@ const ReportEntry = ({ selectedDate, onBackToDashboard, onSave, fetchReportData,
             <div className="card-body p-3 overflow-auto flex-grow-1 d-flex flex-column" style={{ fontSize: '0.8rem' }}>
               
               {/* Total Collection Banner */}
-              <div className="p-2 rounded-2 mb-3 text-center flex-shrink-0" style={{ background: isDark ? 'rgba(74,222,128,0.08)' : 'rgba(22,101,52,0.06)', border: `1px solid ${isDark ? 'rgba(74,222,128,0.3)' : 'rgba(22,101,52,0.25)'}` }}>
-                <div className="text-uppercase fw-bold" style={{ fontSize: '0.68rem', color: t.successText }}>TOTAL COLLECTION</div>
-                <div className="fw-black font-monospace" style={{ fontSize: '1.4rem', color: t.successText }}>
+              <div className="p-2 rounded-2 mb-3 text-center flex-shrink-0" style={{ background: t.sectionHeaderBg, border: `1px solid ${t.cardBorder}` }}>
+                <div className="text-uppercase fw-bold" style={{ fontSize: '0.68rem', color: t.labelText }}>TOTAL COLLECTION</div>
+                <div className="fw-black font-monospace" style={{ fontSize: '1.4rem', color: t.numValue }}>
                   {calcTotalCollection().toLocaleString()} <span style={{ fontSize: '0.8rem' }}>Ltr</span>
                 </div>
               </div>
@@ -693,7 +698,7 @@ const ReportEntry = ({ selectedDate, onBackToDashboard, onSave, fetchReportData,
                       style={{ fontSize: '0.75rem', background: t.inputBg, color: t.inputText, border: `1px solid ${t.inputBorder}` }}
                     />
                     {outsidePurchases.length > 1 && (
-                      <button type="button" onClick={() => removeOutsidePurchaseRow(idx)} className="btn btn-sm btn-outline-danger p-1">
+                      <button type="button" onClick={() => removeOutsidePurchaseRow(idx)} className="btn btn-sm p-1" style={{ background: 'transparent', border: `1px solid ${t.cardBorder}`, color: t.dangerText }}>
                         <Trash2 size={13} />
                       </button>
                     )}
@@ -704,8 +709,8 @@ const ReportEntry = ({ selectedDate, onBackToDashboard, onSave, fetchReportData,
               {/* Stock Out List */}
               <div className="border-top pt-2 mb-3 flex-shrink-0">
                 <div className="d-flex align-items-center justify-content-between mb-1">
-                  <span className="fw-bold text-uppercase" style={{ fontSize: '0.75rem', color: isDark ? '#f87171' : '#dc2626' }}>Stock Out</span>
-                  <button type="button" onClick={addStockOutRow} className="btn btn-sm btn-outline-danger py-0 px-2" style={{ fontSize: '0.7rem' }}>
+                  <span className="fw-bold text-uppercase" style={{ fontSize: '0.75rem', color: t.dangerText }}>Stock Out</span>
+                  <button type="button" onClick={addStockOutRow} className="btn btn-sm py-0 px-2" style={{ fontSize: '0.7rem', background: 'transparent', border: `1px solid ${t.cardBorder}`, color: t.dangerText }}>
                     <Plus size={13} /> Add
                   </button>
                 </div>
@@ -728,7 +733,7 @@ const ReportEntry = ({ selectedDate, onBackToDashboard, onSave, fetchReportData,
                         className="form-control form-control-sm w-28 font-monospace py-1 px-2"
                         style={{ fontSize: '0.75rem', background: t.inputBg, color: t.inputText, border: `1px solid ${t.inputBorder}` }}
                       />
-                      <button type="button" onClick={() => removeStockOutRow(idx)} className="btn btn-sm btn-outline-danger p-1">
+                      <button type="button" onClick={() => removeStockOutRow(idx)} className="btn btn-sm p-1" style={{ background: 'transparent', border: `1px solid ${t.cardBorder}`, color: t.dangerText }}>
                         <Trash2 size={13} />
                       </button>
                     </div>
@@ -763,7 +768,7 @@ const ReportEntry = ({ selectedDate, onBackToDashboard, onSave, fetchReportData,
               <button type="button" onClick={handleSaveDraft} className="btn btn-sm px-3 py-1 fw-bold d-flex align-items-center gap-1" style={{ background: 'transparent', border: `1px solid ${t.cardBorder}`, color: t.headerText, fontSize: '0.78rem' }}>
                 <Save size={14} /> Save Draft
               </button>
-              <button type="button" onClick={handleSubmitClick} className="btn btn-sm px-3 py-1 fw-bold d-flex align-items-center gap-1" style={{ background: '#0059a5', color: '#ffffff', border: '1px solid rgba(255,255,255,0.15)', fontSize: '0.78rem' }}>
+              <button type="button" onClick={handleSubmitClick} className="btn btn-sm px-3 py-1 fw-bold d-flex align-items-center gap-1" style={{ background: t.btnPrimaryBg, color: t.btnPrimaryText, border: 'none', fontSize: '0.78rem' }}>
                 <Check size={14} /> Submit Report
               </button>
             </div>
@@ -782,8 +787,8 @@ const ReportEntry = ({ selectedDate, onBackToDashboard, onSave, fetchReportData,
               <div className="d-flex gap-2">
                 <button 
                   type="button" 
-                  className="btn btn-sm btn-outline-warning py-0 px-2 fw-bold d-flex align-items-center gap-1" 
-                  style={{ fontSize: '0.72rem' }}
+                  className="btn btn-sm py-0 px-2 fw-bold d-flex align-items-center gap-1" 
+                  style={{ fontSize: '0.72rem', background: 'transparent', border: `1px solid ${t.cardBorder}`, color: t.infoText }}
                   onClick={() => setShowMasterModal(true)}
                 >
                   <Database size={13} /> Product Mapping & Rules
@@ -791,8 +796,8 @@ const ReportEntry = ({ selectedDate, onBackToDashboard, onSave, fetchReportData,
                 {!mbsProductGroups && (
                   <button 
                     type="button" 
-                    className="btn btn-sm btn-outline-primary py-0 px-2" 
-                    style={{ fontSize: '0.72rem' }}
+                    className="btn btn-sm py-0 px-2" 
+                    style={{ fontSize: '0.72rem', background: 'transparent', border: `1px solid ${t.cardBorder}`, color: t.infoText }}
                     onClick={() => setMbsProductGroups(buildDefaultProductGroups(productMasterList))}
                   >
                     Load Product Template
@@ -894,7 +899,7 @@ const ReportEntry = ({ selectedDate, onBackToDashboard, onSave, fetchReportData,
                                           />
                                         </td>
                                         <td className="font-monospace text-center fw-bold" style={{ color: t.infoText, borderBottom: `1px solid ${t.tableBorder}`, padding: '6px 8px' }}>{prod.packSize}</td>
-                                        <td className="font-monospace fw-bold text-end" style={{ fontSize: '0.86rem', color: t.successText, borderBottom: `1px solid ${t.tableBorder}`, padding: '6px 8px' }}>{Number(prod.obConverted || 0).toLocaleString()} {gVal.unit}</td>
+                                        <td className="font-monospace fw-bold text-end" style={{ fontSize: '0.86rem', color: t.numValue, borderBottom: `1px solid ${t.tableBorder}`, padding: '6px 8px' }}>{Number(prod.obConverted || 0).toLocaleString()} {gVal.unit}</td>
                                       </tr>
                                       {/* Production Row */}
                                       <tr>
@@ -909,7 +914,7 @@ const ReportEntry = ({ selectedDate, onBackToDashboard, onSave, fetchReportData,
                                           />
                                         </td>
                                         <td className="font-monospace text-center fw-bold" style={{ color: t.infoText, borderBottom: `1px solid ${t.tableBorder}`, padding: '6px 8px' }}>{prod.packSize}</td>
-                                        <td className="font-monospace fw-bold text-end" style={{ fontSize: '0.86rem', color: t.successText, borderBottom: `1px solid ${t.tableBorder}`, padding: '6px 8px' }}>{Number(prod.prodNetConverted || 0).toLocaleString()} {gVal.unit}</td>
+                                        <td className="font-monospace fw-bold text-end" style={{ fontSize: '0.86rem', color: t.numValue, borderBottom: `1px solid ${t.tableBorder}`, padding: '6px 8px' }}>{Number(prod.prodNetConverted || 0).toLocaleString()} {gVal.unit}</td>
                                       </tr>
                                       {/* Inv Qty Row */}
                                       <tr style={{ background: t.tableRowBg }}>
@@ -924,7 +929,7 @@ const ReportEntry = ({ selectedDate, onBackToDashboard, onSave, fetchReportData,
                                           />
                                         </td>
                                         <td className="font-monospace text-center fw-bold" style={{ color: t.infoText, borderBottom: `1px solid ${t.tableBorder}`, padding: '6px 8px' }}>{prod.packSize}</td>
-                                        <td className="font-monospace fw-bold text-end" style={{ fontSize: '0.86rem', color: t.successText, borderBottom: `1px solid ${t.tableBorder}`, padding: '6px 8px' }}>{Number(prod.invQtyConverted || 0).toLocaleString()} {gVal.unit}</td>
+                                        <td className="font-monospace fw-bold text-end" style={{ fontSize: '0.86rem', color: t.numValue, borderBottom: `1px solid ${t.tableBorder}`, padding: '6px 8px' }}>{Number(prod.invQtyConverted || 0).toLocaleString()} {gVal.unit}</td>
                                       </tr>
                                       {/* CB Row */}
                                       <tr>
@@ -939,7 +944,7 @@ const ReportEntry = ({ selectedDate, onBackToDashboard, onSave, fetchReportData,
                                           />
                                         </td>
                                         <td className="font-monospace text-center fw-bold" style={{ color: t.infoText, padding: '6px 8px' }}>{prod.packSize}</td>
-                                        <td className="font-monospace fw-bold text-end" style={{ fontSize: '0.86rem', color: t.successText, padding: '6px 8px' }}>{Number(prod.cbConverted || 0).toLocaleString()} {gVal.unit}</td>
+                                        <td className="font-monospace fw-bold text-end" style={{ fontSize: '0.86rem', color: t.numValue, padding: '6px 8px' }}>{Number(prod.cbConverted || 0).toLocaleString()} {gVal.unit}</td>
                                       </tr>
                                     </tbody>
                                   </table>
@@ -969,22 +974,22 @@ const ReportEntry = ({ selectedDate, onBackToDashboard, onSave, fetchReportData,
                                 <tr style={{ background: t.tableRowBg }}>
                                   <td className="fw-bold" style={{ color: t.headerText, borderBottom: `1px solid ${t.tableBorder}`, padding: '6px 8px' }}>Total OB</td>
                                   <td className="text-end" style={{ color: t.headerText, borderBottom: `1px solid ${t.tableBorder}`, padding: '6px 8px' }}>{totalOBPacks.toLocaleString()} Packs</td>
-                                  <td className="fw-bold text-end" style={{ fontSize: '0.86rem', color: t.successText, borderBottom: `1px solid ${t.tableBorder}`, padding: '6px 8px' }}>{Number(gVal.totalOB || 0).toLocaleString()} {gVal.unit}</td>
+                                  <td className="fw-bold text-end" style={{ fontSize: '0.86rem', color: t.numValue, borderBottom: `1px solid ${t.tableBorder}`, padding: '6px 8px' }}>{Number(gVal.totalOB || 0).toLocaleString()} {gVal.unit}</td>
                                 </tr>
                                 <tr>
                                   <td className="fw-bold" style={{ color: t.headerText, borderBottom: `1px solid ${t.tableBorder}`, padding: '6px 8px' }}>Total Production</td>
                                   <td className="text-end" style={{ color: t.headerText, borderBottom: `1px solid ${t.tableBorder}`, padding: '6px 8px' }}>{totalProdPacks.toLocaleString()} Packs</td>
-                                  <td className="fw-bold text-end" style={{ fontSize: '0.86rem', color: t.successText, borderBottom: `1px solid ${t.tableBorder}`, padding: '6px 8px' }}>{Number(gVal.totalNetProd || 0).toLocaleString()} {gVal.unit}</td>
+                                  <td className="fw-bold text-end" style={{ fontSize: '0.86rem', color: t.numValue, borderBottom: `1px solid ${t.tableBorder}`, padding: '6px 8px' }}>{Number(gVal.totalNetProd || 0).toLocaleString()} {gVal.unit}</td>
                                 </tr>
                                 <tr style={{ background: t.tableRowBg }}>
                                   <td className="fw-bold" style={{ color: t.headerText, borderBottom: `1px solid ${t.tableBorder}`, padding: '6px 8px' }}>Total INV</td>
                                   <td className="text-end" style={{ color: t.headerText, borderBottom: `1px solid ${t.tableBorder}`, padding: '6px 8px' }}>{totalInvPacks.toLocaleString()} Packs</td>
-                                  <td className="fw-bold text-end" style={{ fontSize: '0.86rem', color: t.successText, borderBottom: `1px solid ${t.tableBorder}`, padding: '6px 8px' }}>{Number(gVal.totalInvQty || 0).toLocaleString()} {gVal.unit}</td>
+                                  <td className="fw-bold text-end" style={{ fontSize: '0.86rem', color: t.numValue, borderBottom: `1px solid ${t.tableBorder}`, padding: '6px 8px' }}>{Number(gVal.totalInvQty || 0).toLocaleString()} {gVal.unit}</td>
                                 </tr>
                                 <tr>
                                   <td className="fw-bold" style={{ color: t.headerText, padding: '6px 8px' }}>Total CB</td>
                                   <td className="text-end" style={{ color: t.headerText, padding: '6px 8px' }}>{totalCBPacks.toLocaleString()} Packs</td>
-                                  <td className="fw-bold text-end" style={{ fontSize: '0.86rem', color: t.successText, padding: '6px 8px' }}>{Number(gVal.totalCB || 0).toLocaleString()} {gVal.unit}</td>
+                                  <td className="fw-bold text-end" style={{ fontSize: '0.86rem', color: t.numValue, padding: '6px 8px' }}>{Number(gVal.totalCB || 0).toLocaleString()} {gVal.unit}</td>
                                 </tr>
                               </tbody>
                             </table>
@@ -1004,7 +1009,8 @@ const ReportEntry = ({ selectedDate, onBackToDashboard, onSave, fetchReportData,
                   </p>
                   <button 
                     type="button" 
-                    className="btn btn-sm btn-outline-info" 
+                    className="btn btn-sm px-3 fw-semibold" 
+                    style={{ background: 'transparent', border: `1px solid ${t.cardBorder}`, color: t.infoText, borderRadius: '6px' }}
                     onClick={() => setMbsProductGroups(buildDefaultProductGroups(productMasterList))}
                   >
                     Load Product Master Template
@@ -1020,19 +1026,19 @@ const ReportEntry = ({ selectedDate, onBackToDashboard, onSave, fetchReportData,
       {/* Confirmation Dialog Overlay */}
       {showConfirmSubmit && (
         <div className="confirm-overlay">
-          <div className="confirm-box">
-            <h5 className="fw-bold mb-3 d-flex align-items-center gap-2 text-warning">
+          <div className="confirm-box" style={{ background: t.cardBg, border: `1px solid ${t.cardBorder}`, color: t.headerText }}>
+            <h5 className="fw-bold mb-3 d-flex align-items-center gap-2" style={{ color: t.cautionText }}>
               <AlertTriangle size={22} /> Confirm Submission
             </h5>
-            <p className="mb-4" style={{ fontSize: '0.85rem' }}>
-              Are you sure you want to submit the daily operations report for <strong>{reportDate}</strong>?
+            <p className="mb-4" style={{ fontSize: '0.85rem', color: t.mutedText }}>
+              Are you sure you want to submit the daily operations report for <strong style={{ color: t.headerText }}>{reportDate}</strong>?
               This will update the plant dashboard viewer immediately.
             </p>
             <div className="d-flex justify-content-end gap-3">
-              <button type="button" onClick={() => setShowConfirmSubmit(false)} className="btn btn-outline-secondary btn-sm px-3">
+              <button type="button" onClick={() => setShowConfirmSubmit(false)} className="btn btn-sm px-3 fw-semibold" style={{ background: 'transparent', border: `1px solid ${t.cardBorder}`, color: t.mutedText, borderRadius: '6px' }}>
                 Cancel
               </button>
-              <button type="button" onClick={handleConfirmSubmit} className="btn btn-success btn-sm px-4 fw-bold">
+              <button type="button" onClick={handleConfirmSubmit} className="btn btn-sm px-4 fw-bold" style={{ background: t.btnPrimaryBg, color: '#ffffff', border: 'none', borderRadius: '6px' }}>
                 Submit
               </button>
             </div>
@@ -1043,43 +1049,44 @@ const ReportEntry = ({ selectedDate, onBackToDashboard, onSave, fetchReportData,
       {/* Product Master Manager Modal — Subgroup Wise Mapping & Add Option */}
       {showMasterModal && (
         <div className="confirm-overlay" style={{ zIndex: 1050 }}>
-          <div className="confirm-box p-4" style={{ maxWidth: '1150px', width: '95%', maxHeight: '90vh', overflowY: 'auto' }}>
+          <div className="confirm-box p-4" style={{ maxWidth: '1150px', width: '95%', maxHeight: '90vh', overflowY: 'auto', background: t.cardBg, border: `1px solid ${t.cardBorder}`, color: t.headerText, borderRadius: '14px', boxShadow: '0 20px 40px rgba(0,0,0,0.4)' }}>
             
             {/* Modal Header */}
-            <div className="d-flex align-items-center justify-content-between border-bottom pb-2 mb-3">
+            <div className="d-flex align-items-center justify-content-between border-bottom pb-2 mb-3" style={{ borderColor: t.cardBorder }}>
               <div className="d-flex align-items-center gap-2">
-                <Database size={22} color="#3b82f6" />
+                <Database size={22} style={{ color: t.infoText }} />
                 <div>
-                  <h5 className="fw-bold mb-0 text-white">Subgroup Wise Product Mapping Table</h5>
-                  <span className="text-muted" style={{ fontSize: '0.75rem' }}>
+                  <h5 className="fw-bold mb-0" style={{ color: t.headerText }}>Subgroup Wise Product Mapping Table</h5>
+                  <span style={{ fontSize: '0.75rem', color: t.mutedText }}>
                     Manage product master codes, subgroup mappings, and conversion rules
                   </span>
                 </div>
               </div>
               <div className="d-flex gap-2">
                 <button 
-                  className="btn btn-sm btn-success fw-bold d-flex align-items-center gap-1"
+                  className="btn btn-sm fw-bold d-flex align-items-center gap-1"
                   onClick={() => { setIsAddingProduct(true); setEditingItem(null); }}
+                  style={{ background: '#16a34a', color: '#ffffff', border: 'none', borderRadius: '6px' }}
                 >
                   <Plus size={14} /> Add Product
                 </button>
-                <button className="btn btn-sm btn-outline-danger d-flex align-items-center gap-1" onClick={handleResetMaster}>
+                <button className="btn btn-sm d-flex align-items-center gap-1" onClick={handleResetMaster} style={{ background: 'transparent', border: `1px solid ${t.cardBorder}`, color: t.dangerText, borderRadius: '6px' }}>
                   <RotateCcw size={14} /> Reset Defaults
                 </button>
-                <button className="btn btn-sm btn-outline-secondary" onClick={handleCloseMasterModal}>
+                <button className="btn btn-sm" onClick={handleCloseMasterModal} style={{ background: t.pillBg, border: `1px solid ${t.cardBorder}`, color: t.headerText, borderRadius: '6px' }}>
                   Close
                 </button>
               </div>
             </div>
 
             {/* Conversion Rule Info Banner */}
-            <div className="alert alert-info py-2 px-3 mb-3 d-flex flex-wrap align-items-center justify-content-between gap-2" style={{ fontSize: '0.78rem', background: 'rgba(59, 130, 246, 0.12)', border: '1px solid rgba(59, 130, 246, 0.3)', color: '#93c5fd' }}>
+            <div className="py-2 px-3 mb-3 d-flex flex-wrap align-items-center justify-content-between gap-2 rounded-2" style={{ fontSize: '0.78rem', background: isDark ? 'rgba(56, 189, 248, 0.1)' : '#eff6ff', border: isDark ? '1px solid rgba(56, 189, 248, 0.25)' : '1px solid #bfdbfe', color: isDark ? '#38bdf8' : '#1d4ed8' }}>
               <div className="d-flex align-items-center gap-3">
                 <span>🧈 <strong>Ghee Rule (Subgroup 5):</strong> <code>sku = sku * 0.9</code> (All codes except Code 18)</span>
                 <span>•</span>
                 <span>🥛 <strong>Curd Rule (Subgroup 2):</strong> <code>sku = sku * 1.03</code> (Liters conversion)</span>
               </div>
-              <div className="fw-bold text-white">
+              <div className="fw-bold" style={{ color: t.headerText }}>
                 Total Products: {productMasterList.length}
               </div>
             </div>
@@ -1089,20 +1096,35 @@ const ReportEntry = ({ selectedDate, onBackToDashboard, onSave, fetchReportData,
               <div className="col-md-8 d-flex flex-wrap gap-1">
                 <button 
                   type="button" 
-                  className={`btn btn-xs px-2 py-1 ${subgrpFilter === 'ALL' ? 'btn-primary' : 'btn-outline-secondary'}`}
-                  style={{ fontSize: '0.72rem' }}
+                  className="btn btn-xs px-2 py-1"
+                  style={{ 
+                    fontSize: '0.72rem', 
+                    borderRadius: '6px',
+                    background: subgrpFilter === 'ALL' ? t.btnPrimaryBg : t.cardBg, 
+                    color: subgrpFilter === 'ALL' ? '#ffffff' : t.mutedText, 
+                    border: `1px solid ${subgrpFilter === 'ALL' ? t.btnPrimaryBg : t.cardBorder}`,
+                    fontWeight: 600
+                  }}
                   onClick={() => setSubgrpFilter('ALL')}
                 >
                   All Subgroups ({productMasterList.length})
                 </button>
                 {SUBGROUP_PRESETS.map(sg => {
                   const count = productMasterList.filter(p => Number(p.subgrpCode) === sg.code).length;
+                  const isActive = Number(subgrpFilter) === sg.code;
                   return (
                     <button
                       key={sg.code}
                       type="button"
-                      className={`btn btn-xs px-2 py-1 ${Number(subgrpFilter) === sg.code ? 'btn-warning text-dark fw-bold' : 'btn-outline-secondary'}`}
-                      style={{ fontSize: '0.72rem' }}
+                      className="btn btn-xs px-2 py-1"
+                      style={{ 
+                        fontSize: '0.72rem', 
+                        borderRadius: '6px',
+                        background: isActive ? (isDark ? '#382a10' : '#fef3c7') : t.cardBg, 
+                        color: isActive ? (isDark ? '#fde047' : '#92400e') : t.mutedText, 
+                        border: `1px solid ${isActive ? (isDark ? '#78350f' : '#fde68a') : t.cardBorder}`,
+                        fontWeight: 600
+                      }}
                       onClick={() => setSubgrpFilter(String(sg.code))}
                     >
                       {sg.name} ({count})
@@ -1116,22 +1138,22 @@ const ReportEntry = ({ selectedDate, onBackToDashboard, onSave, fetchReportData,
                   placeholder="Search code, product name, short name..."
                   value={searchMasterQuery}
                   onChange={e => setSearchMasterQuery(e.target.value)}
-                  className="form-control form-control-sm bg-dark text-white border-secondary"
-                  style={{ fontSize: '0.78rem' }}
+                  className="form-control form-control-sm"
+                  style={{ fontSize: '0.78rem', background: t.inputBg, color: t.inputText, border: `1px solid ${t.inputBorder}` }}
                 />
               </div>
             </div>
 
             {/* Add Product Form */}
             {isAddingProduct && (
-              <form onSubmit={handleCreateMasterItem} className="p-3 mb-3 rounded border border-success bg-dark bg-opacity-75">
+              <form onSubmit={handleCreateMasterItem} className="p-3 mb-3 rounded-3" style={{ background: t.sectionHeaderBg, border: `1px solid ${t.cardBorder}` }}>
                 <div className="d-flex align-items-center justify-content-between mb-2">
-                  <h6 className="fw-bold text-success mb-0">➕ Add New Product Mapping</h6>
-                  <button type="button" className="btn btn-sm btn-link text-muted p-0" onClick={() => setIsAddingProduct(false)}>Cancel</button>
+                  <h6 className="fw-bold mb-0" style={{ color: isDark ? '#4ade80' : '#16a34a' }}>➕ Add New Product Mapping</h6>
+                  <button type="button" className="btn btn-sm btn-link p-0 text-decoration-none" style={{ color: t.mutedText }} onClick={() => setIsAddingProduct(false)}>Cancel</button>
                 </div>
                 <div className="row g-2">
                   <div className="col-md-2">
-                    <label style={{ fontSize: '0.7rem' }} className="text-muted">Product Code *</label>
+                    <label style={{ fontSize: '0.7rem', color: t.labelText }}>Product Code *</label>
                     <input 
                       type="number" 
                       required
@@ -1139,10 +1161,11 @@ const ReportEntry = ({ selectedDate, onBackToDashboard, onSave, fetchReportData,
                       value={newProduct.productCode} 
                       onChange={e => setNewProduct({ ...newProduct, productCode: e.target.value })} 
                       className="form-control form-control-sm font-monospace" 
+                      style={{ background: t.inputBg, color: t.inputText, border: `1px solid ${t.inputBorder}` }}
                     />
                   </div>
                   <div className="col-md-4">
-                    <label style={{ fontSize: '0.7rem' }} className="text-muted">Product Name *</label>
+                    <label style={{ fontSize: '0.7rem', color: t.labelText }}>Product Name *</label>
                     <input 
                       type="text" 
                       required
@@ -1150,10 +1173,11 @@ const ReportEntry = ({ selectedDate, onBackToDashboard, onSave, fetchReportData,
                       value={newProduct.productName} 
                       onChange={e => setNewProduct({ ...newProduct, productName: e.target.value })} 
                       className="form-control form-control-sm" 
+                      style={{ background: t.inputBg, color: t.inputText, border: `1px solid ${t.inputBorder}` }}
                     />
                   </div>
                   <div className="col-md-3">
-                    <label style={{ fontSize: '0.7rem' }} className="text-muted">Subgroup Preset</label>
+                    <label style={{ fontSize: '0.7rem', color: t.labelText }}>Subgroup Preset</label>
                     <select 
                       value={newProduct.subgrpCode} 
                       onChange={e => {
@@ -1171,6 +1195,7 @@ const ReportEntry = ({ selectedDate, onBackToDashboard, onSave, fetchReportData,
                         }
                       }} 
                       className="form-select form-select-sm"
+                      style={{ background: t.inputBg, color: t.inputText, border: `1px solid ${t.inputBorder}` }}
                     >
                       {SUBGROUP_PRESETS.map(p => (
                         <option key={p.code} value={p.code}>{p.code}: {p.name}</option>
@@ -1178,38 +1203,41 @@ const ReportEntry = ({ selectedDate, onBackToDashboard, onSave, fetchReportData,
                     </select>
                   </div>
                   <div className="col-md-3">
-                    <label style={{ fontSize: '0.7rem' }} className="text-muted">Short Name</label>
+                    <label style={{ fontSize: '0.7rem', color: t.labelText }}>Short Name</label>
                     <input 
                       type="text" 
                       placeholder="e.g. SC500" 
                       value={newProduct.shortName} 
                       onChange={e => setNewProduct({ ...newProduct, shortName: e.target.value })} 
                       className="form-control form-control-sm font-monospace" 
+                      style={{ background: t.inputBg, color: t.inputText, border: `1px solid ${t.inputBorder}` }}
                     />
                   </div>
                 </div>
 
                 <div className="row g-2 mt-1 align-items-center">
                   <div className="col-md-2">
-                    <label style={{ fontSize: '0.7rem' }} className="text-muted">Subgrp Code</label>
+                    <label style={{ fontSize: '0.7rem', color: t.labelText }}>Subgrp Code</label>
                     <input 
                       type="number" 
                       value={newProduct.subgrpCode} 
                       onChange={e => setNewProduct({ ...newProduct, subgrpCode: Number(e.target.value) })} 
                       className="form-control form-control-sm" 
+                      style={{ background: t.inputBg, color: t.inputText, border: `1px solid ${t.inputBorder}` }}
                     />
                   </div>
                   <div className="col-md-2">
-                    <label style={{ fontSize: '0.7rem' }} className="text-muted">Subgrp Name</label>
+                    <label style={{ fontSize: '0.7rem', color: t.labelText }}>Subgrp Name</label>
                     <input 
                       type="text" 
                       value={newProduct.subgrpName} 
                       onChange={e => setNewProduct({ ...newProduct, subgrpName: e.target.value })} 
                       className="form-control form-control-sm" 
+                      style={{ background: t.inputBg, color: t.inputText, border: `1px solid ${t.inputBorder}` }}
                     />
                   </div>
                   <div className="col-md-2">
-                    <label style={{ fontSize: '0.7rem' }} className="text-muted">Maingrp Code / Name</label>
+                    <label style={{ fontSize: '0.7rem', color: t.labelText }}>Maingrp Code / Name</label>
                     <select 
                       value={newProduct.maingrpCode} 
                       onChange={e => {
@@ -1221,44 +1249,48 @@ const ReportEntry = ({ selectedDate, onBackToDashboard, onSave, fetchReportData,
                         });
                       }} 
                       className="form-select form-select-sm"
+                      style={{ background: t.inputBg, color: t.inputText, border: `1px solid ${t.inputBorder}` }}
                     >
                       <option value={1}>1: Milk Packets</option>
                       <option value={2}>2: Products</option>
                     </select>
                   </div>
                   <div className="col-md-2">
-                    <label style={{ fontSize: '0.7rem' }} className="text-muted">Group Unit</label>
+                    <label style={{ fontSize: '0.7rem', color: t.labelText }}>Group Unit</label>
                     <select 
                       value={newProduct.groupUnit} 
                       onChange={e => setNewProduct({ ...newProduct, groupUnit: e.target.value })} 
                       className="form-select form-select-sm font-monospace"
+                      style={{ background: t.inputBg, color: t.inputText, border: `1px solid ${t.inputBorder}` }}
                     >
                       <option value="ltr">ltr</option>
                       <option value="kgs">kgs</option>
                     </select>
                   </div>
                   <div className="col-md-1">
-                    <label style={{ fontSize: '0.7rem' }} className="text-muted">Nos</label>
+                    <label style={{ fontSize: '0.7rem', color: t.labelText }}>Nos</label>
                     <input 
                       type="number" 
                       value={newProduct.groupNos} 
                       onChange={e => setNewProduct({ ...newProduct, groupNos: e.target.value })} 
                       className="form-control form-control-sm" 
+                      style={{ background: t.inputBg, color: t.inputText, border: `1px solid ${t.inputBorder}` }}
                     />
                   </div>
                   <div className="col-md-3">
-                    <label style={{ fontSize: '0.7rem' }} className="text-muted">Base SKU Vol / Wt</label>
+                    <label style={{ fontSize: '0.7rem', color: t.labelText }}>Base SKU Vol / Wt</label>
                     <input 
                       type="number" 
                       step="0.0001" 
                       value={newProduct.baseVal} 
                       onChange={e => setNewProduct({ ...newProduct, baseVal: e.target.value, groupValue: e.target.value })} 
-                      className="form-control form-control-sm font-monospace fw-bold text-warning" 
+                      className="form-control form-control-sm font-monospace fw-bold" 
+                      style={{ background: t.inputBg, color: t.cautionText, border: `1px solid ${t.inputBorder}` }}
                     />
                   </div>
                 </div>
 
-                <div className="d-flex align-items-center justify-content-between mt-2 pt-2 border-top border-secondary">
+                <div className="d-flex align-items-center justify-content-between mt-2 pt-2 border-top" style={{ borderColor: t.cardBorder }}>
                   <div className="form-check form-switch small">
                     <input 
                       type="checkbox" 
@@ -1267,19 +1299,19 @@ const ReportEntry = ({ selectedDate, onBackToDashboard, onSave, fetchReportData,
                       checked={newProduct.autoCalculateSku}
                       onChange={e => setNewProduct({ ...newProduct, autoCalculateSku: e.target.checked })} 
                     />
-                    <label className="form-check-label text-info" htmlFor="autoCalculateCheckNew" style={{ fontSize: '0.75rem' }}>
+                    <label className="form-check-label" htmlFor="autoCalculateCheckNew" style={{ fontSize: '0.75rem', color: t.infoText }}>
                       Auto-apply Conversion Rules (Ghee <code>* 0.9</code> except 18, Curd <code>* 1.03</code>)
                     </label>
                   </div>
                   <div className="d-flex align-items-center gap-3">
-                    <span className="text-white small">
-                      Final Group Value (SKU): <strong className="text-success font-monospace" style={{ fontSize: '0.9rem' }}>
+                    <span className="small" style={{ color: t.headerText }}>
+                      Final Group Value (SKU): <strong className="font-monospace" style={{ fontSize: '0.9rem', color: isDark ? '#4ade80' : '#16a34a' }}>
                         {newProduct.autoCalculateSku 
                           ? calculateGroupValueFrontend(newProduct.subgrpCode, newProduct.productCode, newProduct.baseVal, newProduct.groupUnit) 
                           : newProduct.groupValue}
                       </strong>
                     </span>
-                    <button type="submit" className="btn btn-sm btn-success px-3 fw-bold">Save New Product</button>
+                    <button type="submit" className="btn btn-sm px-3 fw-bold" style={{ background: '#16a34a', color: '#ffffff', border: 'none', borderRadius: '6px' }}>Save New Product</button>
                   </div>
                 </div>
               </form>
@@ -1287,85 +1319,86 @@ const ReportEntry = ({ selectedDate, onBackToDashboard, onSave, fetchReportData,
 
             {/* Edit Product Form */}
             {editingItem && (
-              <form onSubmit={handleSaveMasterItem} className="p-3 mb-3 rounded border border-info bg-dark bg-opacity-75">
+              <form onSubmit={handleSaveMasterItem} className="p-3 mb-3 rounded-3" style={{ background: t.sectionHeaderBg, border: `1px solid ${t.cardBorder}` }}>
                 <div className="d-flex align-items-center justify-content-between mb-2">
-                  <h6 className="fw-bold text-info mb-0">✏️ Edit Product Master Mapping (Code: {editingItem.productCode})</h6>
-                  <button type="button" className="btn btn-sm btn-link text-muted p-0" onClick={() => setEditingItem(null)}>Cancel</button>
+                  <h6 className="fw-bold mb-0" style={{ color: t.infoText }}>✏️ Edit Product Master Mapping (Code: {editingItem.productCode})</h6>
+                  <button type="button" className="btn btn-sm btn-link p-0 text-decoration-none" style={{ color: t.mutedText }} onClick={() => setEditingItem(null)}>Cancel</button>
                 </div>
                 <div className="row g-2">
                   <div className="col-md-2">
-                    <label style={{ fontSize: '0.7rem' }} className="text-muted">Code</label>
-                    <input type="number" value={editingItem.productCode} disabled className="form-control form-control-sm font-monospace" />
+                    <label style={{ fontSize: '0.7rem', color: t.labelText }}>Code</label>
+                    <input type="number" value={editingItem.productCode} disabled className="form-control form-control-sm font-monospace" style={{ background: t.inputBg, color: t.inputText, border: `1px solid ${t.inputBorder}` }} />
                   </div>
                   <div className="col-md-4">
-                    <label style={{ fontSize: '0.7rem' }} className="text-muted">Product Name</label>
-                    <input type="text" value={editingItem.productName} onChange={e => setEditingItem({ ...editingItem, productName: e.target.value })} className="form-control form-control-sm" />
+                    <label style={{ fontSize: '0.7rem', color: t.labelText }}>Product Name</label>
+                    <input type="text" value={editingItem.productName} onChange={e => setEditingItem({ ...editingItem, productName: e.target.value })} className="form-control form-control-sm" style={{ background: t.inputBg, color: t.inputText, border: `1px solid ${t.inputBorder}` }} />
                   </div>
                   <div className="col-md-3">
-                    <label style={{ fontSize: '0.7rem' }} className="text-muted">Subgrp Name</label>
-                    <input type="text" value={editingItem.subgrpName} onChange={e => setEditingItem({ ...editingItem, subgrpName: e.target.value })} className="form-control form-control-sm" />
+                    <label style={{ fontSize: '0.7rem', color: t.labelText }}>Subgrp Name</label>
+                    <input type="text" value={editingItem.subgrpName} onChange={e => setEditingItem({ ...editingItem, subgrpName: e.target.value })} className="form-control form-control-sm" style={{ background: t.inputBg, color: t.inputText, border: `1px solid ${t.inputBorder}` }} />
                   </div>
                   <div className="col-md-3">
-                    <label style={{ fontSize: '0.7rem' }} className="text-muted">Short Name</label>
-                    <input type="text" value={editingItem.shortName || ''} onChange={e => setEditingItem({ ...editingItem, shortName: e.target.value })} className="form-control form-control-sm font-monospace" />
+                    <label style={{ fontSize: '0.7rem', color: t.labelText }}>Short Name</label>
+                    <input type="text" value={editingItem.shortName || ''} onChange={e => setEditingItem({ ...editingItem, shortName: e.target.value })} className="form-control form-control-sm font-monospace" style={{ background: t.inputBg, color: t.inputText, border: `1px solid ${t.inputBorder}` }} />
                   </div>
                 </div>
 
                 <div className="row g-2 mt-1 align-items-center">
                   <div className="col-md-2">
-                    <label style={{ fontSize: '0.7rem' }} className="text-muted">Subgrp Code</label>
-                    <input type="number" value={editingItem.subgrpCode} onChange={e => setEditingItem({ ...editingItem, subgrpCode: Number(e.target.value) })} className="form-control form-control-sm" />
+                    <label style={{ fontSize: '0.7rem', color: t.labelText }}>Subgrp Code</label>
+                    <input type="number" value={editingItem.subgrpCode} onChange={e => setEditingItem({ ...editingItem, subgrpCode: Number(e.target.value) })} className="form-control form-control-sm" style={{ background: t.inputBg, color: t.inputText, border: `1px solid ${t.inputBorder}` }} />
                   </div>
                   <div className="col-md-2">
-                    <label style={{ fontSize: '0.7rem' }} className="text-muted">Maingrp Name</label>
-                    <input type="text" value={editingItem.maingrpName} onChange={e => setEditingItem({ ...editingItem, maingrpName: e.target.value })} className="form-control form-control-sm" />
+                    <label style={{ fontSize: '0.7rem', color: t.labelText }}>Maingrp Name</label>
+                    <input type="text" value={editingItem.maingrpName} onChange={e => setEditingItem({ ...editingItem, maingrpName: e.target.value })} className="form-control form-control-sm" style={{ background: t.inputBg, color: t.inputText, border: `1px solid ${t.inputBorder}` }} />
                   </div>
                   <div className="col-md-2">
-                    <label style={{ fontSize: '0.7rem' }} className="text-muted">Group Unit</label>
-                    <select value={editingItem.groupUnit} onChange={e => setEditingItem({ ...editingItem, groupUnit: e.target.value })} className="form-select form-select-sm font-monospace">
+                    <label style={{ fontSize: '0.7rem', color: t.labelText }}>Group Unit</label>
+                    <select value={editingItem.groupUnit} onChange={e => setEditingItem({ ...editingItem, groupUnit: e.target.value })} className="form-select form-select-sm font-monospace" style={{ background: t.inputBg, color: t.inputText, border: `1px solid ${t.inputBorder}` }}>
                       <option value="ltr">ltr</option>
                       <option value="kgs">kgs</option>
                     </select>
                   </div>
                   <div className="col-md-2">
-                    <label style={{ fontSize: '0.7rem' }} className="text-muted">Group Nos</label>
-                    <input type="number" value={editingItem.groupNos} onChange={e => setEditingItem({ ...editingItem, groupNos: e.target.value })} className="form-control form-control-sm" />
+                    <label style={{ fontSize: '0.7rem', color: t.labelText }}>Group Nos</label>
+                    <input type="number" value={editingItem.groupNos} onChange={e => setEditingItem({ ...editingItem, groupNos: e.target.value })} className="form-control form-control-sm" style={{ background: t.inputBg, color: t.inputText, border: `1px solid ${t.inputBorder}` }} />
                   </div>
                   <div className="col-md-4">
-                    <label style={{ fontSize: '0.7rem' }} className="text-muted">Group Value (SKU)</label>
+                    <label style={{ fontSize: '0.7rem', color: t.labelText }}>Group Value (SKU)</label>
                     <input 
                       type="number" 
                       step="0.0001" 
                       value={editingItem.groupValue} 
                       onChange={e => setEditingItem({ ...editingItem, groupValue: e.target.value, packSizeMultiplier: e.target.value })} 
-                      className="form-control form-control-sm font-monospace fw-bold text-success" 
+                      className="form-control form-control-sm font-monospace fw-bold" 
+                      style={{ background: t.inputBg, color: isDark ? '#4ade80' : '#16a34a', border: `1px solid ${t.inputBorder}` }}
                     />
                   </div>
                 </div>
 
                 <div className="d-flex justify-content-end gap-2 mt-2">
-                  <button type="button" className="btn btn-sm btn-secondary" onClick={() => setEditingItem(null)}>Cancel</button>
-                  <button type="submit" className="btn btn-sm btn-info text-white fw-bold">Update Mapping</button>
+                  <button type="button" className="btn btn-sm" onClick={() => setEditingItem(null)} style={{ background: t.pillBg, border: `1px solid ${t.cardBorder}`, color: t.headerText }}>Cancel</button>
+                  <button type="submit" className="btn btn-sm fw-bold" style={{ background: t.btnPrimaryBg, color: '#ffffff', border: 'none', borderRadius: '6px' }}>Update Mapping</button>
                 </div>
               </form>
             )}
 
             {/* Subgroup Wise Products Table */}
-            <div className="table-responsive" style={{ maxHeight: '420px' }}>
-              <table className="table table-dark table-striped table-hover align-middle mb-0" style={{ fontSize: '0.75rem' }}>
-                <thead className="table-primary sticky-top">
+            <div className="table-responsive rounded-2" style={{ maxHeight: '420px', border: `1px solid ${t.tableBorder}` }}>
+              <table className="table table-hover align-middle mb-0" style={{ fontSize: '0.75rem', color: t.headerText, background: t.cardBg }}>
+                <thead className="sticky-top" style={{ background: t.sectionHeaderBg, borderBottom: `2px solid ${t.tableBorder}` }}>
                   <tr>
-                    <th>Product Code</th>
-                    <th>Product Name</th>
-                    <th>Subgrp Code</th>
-                    <th>Subgrp Name</th>
-                    <th>Maingrp Code</th>
-                    <th>Maingrp Name</th>
-                    <th>Short Name</th>
-                    <th>Group Unit</th>
-                    <th>Group Nos</th>
-                    <th>Group Value</th>
-                    <th className="text-center">Actions</th>
+                    <th style={{ background: t.sectionHeaderBg, color: t.mutedText, borderBottom: `1px solid ${t.tableBorder}` }}>Product Code</th>
+                    <th style={{ background: t.sectionHeaderBg, color: t.mutedText, borderBottom: `1px solid ${t.tableBorder}` }}>Product Name</th>
+                    <th style={{ background: t.sectionHeaderBg, color: t.mutedText, borderBottom: `1px solid ${t.tableBorder}` }} className="text-center">Subgrp Code</th>
+                    <th style={{ background: t.sectionHeaderBg, color: t.mutedText, borderBottom: `1px solid ${t.tableBorder}` }}>Subgrp Name</th>
+                    <th style={{ background: t.sectionHeaderBg, color: t.mutedText, borderBottom: `1px solid ${t.tableBorder}` }} className="text-center">Maingrp Code</th>
+                    <th style={{ background: t.sectionHeaderBg, color: t.mutedText, borderBottom: `1px solid ${t.tableBorder}` }}>Maingrp Name</th>
+                    <th style={{ background: t.sectionHeaderBg, color: t.mutedText, borderBottom: `1px solid ${t.tableBorder}` }}>Short Name</th>
+                    <th style={{ background: t.sectionHeaderBg, color: t.mutedText, borderBottom: `1px solid ${t.tableBorder}` }}>Group Unit</th>
+                    <th style={{ background: t.sectionHeaderBg, color: t.mutedText, borderBottom: `1px solid ${t.tableBorder}` }} className="text-center">Group Nos</th>
+                    <th style={{ background: t.sectionHeaderBg, color: t.mutedText, borderBottom: `1px solid ${t.tableBorder}` }}>Group Value</th>
+                    <th style={{ background: t.sectionHeaderBg, color: t.mutedText, borderBottom: `1px solid ${t.tableBorder}` }} className="text-center">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1387,44 +1420,44 @@ const ReportEntry = ({ selectedDate, onBackToDashboard, onSave, fetchReportData,
                       const isCode18 = Number(item.productCode) === 18;
 
                       return (
-                        <tr key={item.productCode}>
-                          <td className="fw-bold font-monospace text-warning">{item.productCode}</td>
-                          <td className="fw-semibold text-white">{item.productName}</td>
-                          <td className="font-monospace text-center">{item.subgrpCode}</td>
+                        <tr key={item.productCode} style={{ borderBottom: `1px solid ${t.tableBorder}`, background: t.cardBg }}>
+                          <td className="fw-bold font-monospace" style={{ color: t.cautionText }}>{item.productCode}</td>
+                          <td className="fw-semibold" style={{ color: t.headerText }}>{item.productName}</td>
+                          <td className="font-monospace text-center" style={{ color: t.mutedText }}>{item.subgrpCode}</td>
                           <td>
-                            <span className="badge bg-secondary bg-opacity-75" style={{ fontSize: '0.7rem' }}>
+                            <span className="badge" style={{ fontSize: '0.7rem', background: t.pillBg, color: t.pillText, border: `1px solid ${t.cardBorder}` }}>
                               {item.subgrpName}
                             </span>
                           </td>
-                          <td className="font-monospace text-center">{item.maingrpCode}</td>
-                          <td className="text-muted">{item.maingrpName}</td>
-                          <td className="font-monospace text-info">{item.shortName || '--'}</td>
-                          <td className="font-monospace">{item.groupUnit}</td>
-                          <td className="font-monospace text-center">{item.groupNos}</td>
-                          <td className="font-monospace fw-bold text-success" style={{ fontSize: '0.82rem' }}>
+                          <td className="font-monospace text-center" style={{ color: t.mutedText }}>{item.maingrpCode}</td>
+                          <td style={{ color: t.mutedText }}>{item.maingrpName}</td>
+                          <td className="font-monospace" style={{ color: t.infoText }}>{item.shortName || '--'}</td>
+                          <td className="font-monospace" style={{ color: t.headerText }}>{item.groupUnit}</td>
+                          <td className="font-monospace text-center" style={{ color: t.mutedText }}>{item.groupNos}</td>
+                          <td className="font-monospace fw-bold" style={{ fontSize: '0.82rem', color: isDark ? '#4ade80' : '#16a34a' }}>
                             {item.groupValue}
                             {isGhee && !isCode18 && (
-                              <span className="badge bg-warning text-dark ms-1 opacity-75" style={{ fontSize: '0.62rem' }}>0.9x</span>
+                              <span className="badge ms-1" style={{ fontSize: '0.62rem', background: isDark ? '#382a10' : '#fef3c7', color: isDark ? '#fde047' : '#92400e' }}>0.9x</span>
                             )}
                             {isGhee && isCode18 && (
-                              <span className="badge bg-info text-dark ms-1 opacity-75" style={{ fontSize: '0.62rem' }}>Code 18 (No 0.9)</span>
+                              <span className="badge ms-1" style={{ fontSize: '0.62rem', background: isDark ? 'rgba(56, 189, 248, 0.2)' : '#e0f2fe', color: t.infoText }}>Code 18 (No 0.9)</span>
                             )}
                             {isCurd && item.groupUnit === 'kgs' && item.groupValue !== 5 && item.groupValue !== 0.525 && item.groupValue !== 0.45 && (
-                              <span className="badge bg-primary ms-1 opacity-75" style={{ fontSize: '0.62rem' }}>1.03x</span>
+                              <span className="badge ms-1" style={{ fontSize: '0.62rem', background: isDark ? 'rgba(56, 189, 248, 0.2)' : '#e0f2fe', color: t.infoText }}>1.03x</span>
                             )}
                           </td>
                           <td className="text-center">
                             <div className="d-flex align-items-center justify-content-center gap-1">
                               <button 
-                                className="btn btn-sm btn-outline-info p-1 py-0" 
-                                style={{ fontSize: '0.7rem' }}
+                                className="btn btn-sm p-1 py-0" 
+                                style={{ fontSize: '0.7rem', background: 'transparent', border: `1px solid ${t.cardBorder}`, color: t.infoText }}
                                 onClick={() => setEditingItem(item)}
                               >
                                 Edit
                               </button>
                               <button 
-                                className="btn btn-sm btn-outline-danger p-1 py-0" 
-                                style={{ fontSize: '0.7rem' }}
+                                className="btn btn-sm p-1 py-0" 
+                                style={{ fontSize: '0.7rem', background: 'transparent', border: `1px solid ${t.cardBorder}`, color: t.dangerText }}
                                 onClick={() => handleDeleteMasterItem(item.productCode)}
                               >
                                 Delete

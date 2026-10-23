@@ -49,51 +49,72 @@ const DataEntry = ({ isOpen, onClose, initialData, onSave }) => {
     <div
       className="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center"
       style={{
-        backgroundColor: 'rgba(0,0,0,0.7)',
+        backgroundColor: 'rgba(0,0,0,0.65)',
         zIndex: 1050,
-        backdropFilter: 'blur(4px)'
+        backdropFilter: 'blur(3px)'
       }}
     >
       <div
-        className="card shadow-lg border-secondary"
+        className="card shadow-lg"
         style={{
-          width: '750px',
-          maxWidth: '90%',
+          width: '760px',
+          maxWidth: '92%',
           maxHeight: '85vh',
           display: 'flex',
           flexDirection: 'column',
           backgroundColor: 'var(--card-bg)',
-          color: 'var(--text-color)'
+          color: 'var(--text-color)',
+          border: '1px solid var(--border-color)',
+          borderRadius: '14px',
+          boxShadow: 'var(--card-shadow)'
         }}
       >
         {/* Header */}
-        <div className="card-header d-flex justify-content-between align-items-center border-bottom border-secondary py-3">
-          <h5 className="mb-0 fw-bold d-flex align-items-center gap-2">
-            <Database className="text-warning" size={20} />
+        <div className="card-header d-flex justify-content-between align-items-center py-3 px-4" style={{ background: 'var(--section-header-bg)', borderBottom: '1px solid var(--border-color)' }}>
+          <h5 className="mb-0 fw-bold d-flex align-items-center gap-2" style={{ color: 'var(--header-text)' }}>
+            <Database className="text-primary" size={20} />
             Data Entry Terminal &mdash; Date: {formData.date}
           </h5>
-          <button onClick={onClose} className="btn-close btn-close-white" style={{ filter: 'invert(var(--theme-invert, 0))' }}></button>
+          <button onClick={onClose} className="btn-close" aria-label="Close"></button>
         </div>
 
         {/* Tab Buttons */}
-        <div className="bg-light bg-opacity-10 d-flex p-2 gap-2 border-bottom border-secondary">
+        <div className="d-flex p-2 px-3 gap-2" style={{ background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border-color)' }}>
           <button
             type="button"
-            className={`btn btn-sm ${activeFormTab === 'summary' ? 'btn-primary' : 'btn-outline-secondary'}`}
+            className="btn btn-sm px-3 fw-semibold"
+            style={{
+              background: activeFormTab === 'summary' ? 'var(--btn-primary-bg)' : 'transparent',
+              color: activeFormTab === 'summary' ? '#ffffff' : 'var(--text-muted)',
+              border: `1px solid ${activeFormTab === 'summary' ? 'var(--btn-primary-bg)' : 'var(--border-color)'}`,
+              borderRadius: '6px'
+            }}
             onClick={() => setActiveFormTab('summary')}
           >
             Collections & Received
           </button>
           <button
             type="button"
-            className={`btn btn-sm ${activeFormTab === 'sales' ? 'btn-primary' : 'btn-outline-secondary'}`}
+            className="btn btn-sm px-3 fw-semibold"
+            style={{
+              background: activeFormTab === 'sales' ? 'var(--btn-primary-bg)' : 'transparent',
+              color: activeFormTab === 'sales' ? '#ffffff' : 'var(--text-muted)',
+              border: `1px solid ${activeFormTab === 'sales' ? 'var(--btn-primary-bg)' : 'var(--border-color)'}`,
+              borderRadius: '6px'
+            }}
             onClick={() => setActiveFormTab('sales')}
           >
             Sales Breakdown
           </button>
           <button
             type="button"
-            className={`btn btn-sm ${activeFormTab === 'stocks' ? 'btn-primary' : 'btn-outline-secondary'}`}
+            className="btn btn-sm px-3 fw-semibold"
+            style={{
+              background: activeFormTab === 'stocks' ? 'var(--btn-primary-bg)' : 'transparent',
+              color: activeFormTab === 'stocks' ? '#ffffff' : 'var(--text-muted)',
+              border: `1px solid ${activeFormTab === 'stocks' ? 'var(--btn-primary-bg)' : 'var(--border-color)'}`,
+              borderRadius: '6px'
+            }}
             onClick={() => setActiveFormTab('stocks')}
           >
             Product Stock (Variants)
@@ -239,20 +260,20 @@ const DataEntry = ({ isOpen, onClose, initialData, onSave }) => {
             {activeFormTab === 'stocks' && (
               <div className="d-flex flex-column gap-4">
                 {formData.products.map((prod, pIdx) => (
-                  <div key={prod.productName} className="border border-secondary p-3 rounded">
-                    <h6 className="fw-bold border-bottom border-secondary pb-2 text-warning d-flex justify-content-between">
+                  <div key={prod.productName} className="p-3 rounded-3" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
+                    <h6 className="fw-bold pb-2 d-flex justify-content-between align-items-center" style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--header-text)' }}>
                       <span>{prod.productName} STOCK</span>
-                      <span className="text-white opacity-50" style={{ fontSize: '0.8rem' }}>
-                        Auto-computed Total: {prod.variants.reduce((sum, v) => sum + (Number(v.value) || 0), 0).toLocaleString()} Kg
+                      <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                        Auto-computed Total: <strong style={{ color: 'var(--header-text)' }}>{prod.variants.reduce((sum, v) => sum + (Number(v.value) || 0), 0).toLocaleString()} Kg</strong>
                       </span>
                     </h6>
                     <div className="row g-3">
                       {prod.variants.map((variant, vIdx) => (
                         <div className="col-md-3" key={variant.name}>
-                          <label className="form-label text-muted" style={{ fontSize: '0.75rem' }}>{variant.name} Variant</label>
+                          <label className="form-label" style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{variant.name} Variant</label>
                           <input
                             type="number"
-                            className="form-control form-control-sm bg-dark text-white border-secondary"
+                            className="form-control form-control-sm font-monospace"
                             value={variant.value}
                             onChange={(e) => {
                               const val = Number(e.target.value) || 0;
@@ -274,24 +295,26 @@ const DataEntry = ({ isOpen, onClose, initialData, onSave }) => {
           </div>
 
           {/* Footer Controls */}
-          <div className="card-footer d-flex justify-content-between align-items-center border-top border-secondary py-3">
-            <span className="text-muted d-flex align-items-center gap-1" style={{ fontSize: '0.72rem' }}>
-              <Info size={14} className="text-info" />
+          <div className="card-footer d-flex justify-content-between align-items-center py-3 px-4" style={{ background: 'var(--section-header-bg)', borderTop: '1px solid var(--border-color)' }}>
+            <span className="d-flex align-items-center gap-1" style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>
+              <Info size={14} className="text-primary" />
               Saving updates the database. The Live dashboard will pick up changes on refresh.
             </span>
             <div className="d-flex gap-2">
               <button
                 type="button"
                 onClick={onClose}
-                className="btn btn-outline-light px-4"
+                className="btn btn-sm px-4 fw-semibold"
+                style={{ background: 'transparent', border: '1px solid var(--border-color)', color: 'var(--text-muted)', borderRadius: '6px' }}
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                className="btn btn-warning px-4 d-flex align-items-center gap-1 fw-bold"
+                className="btn btn-sm px-4 d-flex align-items-center gap-1 fw-bold"
+                style={{ background: 'var(--btn-primary-bg)', color: '#ffffff', border: 'none', borderRadius: '6px' }}
               >
-                <Save size={16} />
+                <Save size={15} />
                 Save Changes
               </button>
             </div>

@@ -1,214 +1,135 @@
-import React from 'react';
-import { Calendar, Clock, Tv, Sun, Moon, RefreshCw, Edit2, Database } from 'lucide-react';
+import React, { useRef, useState, useEffect } from 'react';
+import { Calendar, Clock } from 'lucide-react';
+
 const Header = ({
   selectedDate,
   onDateChange,
   theme,
   toggleTheme,
-  lastUpdated,
-  onManualRefresh,
   onOpenDataEntry,
-  onOpenProductMapping,
-  currentDateStr,
-  liveTimeStr
+  view = 'dashboard'
 }) => {
-  // Format selectedDate for display
-  const formatDateDisplay = (dateStr) => {
+  const dateInputRef = useRef(null);
+
+  // Live ticking time format matching screenshot: "4:57:06 pm"
+  const getFormattedLiveTime = () => {
+    const now = new Date();
+    let hours = now.getHours();
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    const seconds = String(now.getSeconds()).padStart(2, '0');
+    const ampm = hours >= 12 ? 'pm' : 'am';
+    hours = hours % 12 || 12;
+    return `${hours}:${minutes}:${seconds} ${ampm}`;
+  };
+
+  const [liveTime, setLiveTime] = useState(getFormattedLiveTime);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setLiveTime(getFormattedLiveTime());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // Format live current date: "Friday, 23 Oct 2026"
+  const getLiveFormattedDate = () => {
+    const now = new Date();
+    const weekdays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return `${weekdays[now.getDay()]}, ${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()}`;
+  };
+
+  // Format date as DD/MM/YYYY (e.g. 22/10/2026)
+  const formatDDMMYYYY = (dateStr) => {
+    if (!dateStr) return '';
     try {
-      const date = new Date(dateStr);
-      const options = { day: '2-digit', month: 'short', year: 'numeric' };
-      const formatted = date.toLocaleDateString('en-GB', options).replace(/ /g, '-');
-      return formatted;
-    } catch {
-      return dateStr;
-    }
+      const parts = dateStr.split('-');
+      if (parts.length === 3) {
+        return `${parts[2]}/${parts[1]}/${parts[0]}`;
+      }
+    } catch {}
+    return dateStr;
   };
 
-  const displayDate = formatDateDisplay(selectedDate);
-
-  // Toggle fullscreen mode for TV & desktop browsers
-  const toggleFullscreen = (e) => {
-    if (e && e.preventDefault) e.preventDefault();
-    const doc = document.documentElement;
-    const isFull = document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement || document.mozFullScreenElement;
-    
-    if (!isFull) {
-      if (doc.requestFullscreen) {
-        doc.requestFullscreen().catch((err) => console.log(err));
-      } else if (doc.webkitRequestFullscreen) {
-        doc.webkitRequestFullscreen();
-      } else if (doc.msRequestFullscreen) {
-        doc.msRequestFullscreen();
-      } else if (doc.mozRequestFullScreen) {
-        doc.mozRequestFullScreen();
-      }
-    } else {
-      if (document.exitFullscreen) {
-        document.exitFullscreen().catch((err) => console.log(err));
-      } else if (document.webkitExitFullscreen) {
-        document.webkitExitFullscreen();
-      } else if (document.msExitFullscreen) {
-        document.msExitFullscreen();
-      } else if (document.mozCancelFullScreen) {
-        document.mozCancelFullScreen();
+  // Trigger date picker popup when clicking anywhere on the pill
+  const handlePillClick = () => {
+    if (dateInputRef.current) {
+      if (typeof dateInputRef.current.showPicker === 'function') {
+        try {
+          dateInputRef.current.showPicker();
+        } catch {
+          dateInputRef.current.focus();
+        }
+      } else {
+        dateInputRef.current.focus();
       }
     }
   };
-
-  const fullDayMap = {
-    Sun: 'Sunday',
-    Mon: 'Monday',
-    Tue: 'Tuesday',
-    Wed: 'Wednesday',
-    Thu: 'Thursday',
-    Fri: 'Friday',
-    Sat: 'Saturday'
-  };
-
-  // Separate currentDateStr into day and date
-  const dateParts = currentDateStr ? currentDateStr.split(', ') : ['', ''];
-  const rawDay = dateParts[0] || '';
-  const fullDayName = fullDayMap[rawDay] || rawDay;
-  const dateStr = dateParts[1] || currentDateStr || '';
 
   return (
-    <header className="dashboard-header d-flex align-items-center justify-content-between">
-      <div className="dashboard-title-area">
-        <img src="/logo.png" alt="Milma Logo" className="milma-logo" />
-        <div className="dashboard-title-text border-start border-white border-opacity-25 ps-3 ms-2">
-          <h1>MILMA WAYANAD DAIRY</h1>
-          <p>Daily Operations Dashboard</p>
+    <header className="milma-dashboard-header">
+      <div className="milma-header-left">
+        <img
+          src="/logo.png"
+          alt="Milma Wayanad Dairy Logo"
+          className="milma-logo"
+        />
+        <div className="milma-header-titles">
+          <h1 className="milma-header-title">Milma Wayanad Dairy</h1>
+          <p className="milma-header-subtitle">Daily operations dashboard</p>
         </div>
       </div>
 
-      <div className="d-flex align-items-center gap-3">
-        {/* Compact Status Cluster: Day + Date + Time + Last Updated */}
-        <div 
-          className="d-flex align-items-center text-white px-3 py-2 rounded-3 gap-3" 
-          style={{ background: 'rgba(255, 255, 255, 0.06)', border: '1px solid rgba(255, 255, 255, 0.12)' }}
+      <div className="milma-header-right">
+        {/* Live Date Pill */}
+        <div className="milma-pill-live-date">
+          {getLiveFormattedDate()}
+        </div>
+
+        {/* Live Time Pill */}
+        <div className="milma-pill-live-time">
+          <Clock size={14} className="milma-live-time-icon" />
+          <span>{liveTime}</span>
+        </div>
+
+        {/* Report Date Pill: click anywhere to open date picker */}
+        <div
+          className="milma-pill-report-date position-relative"
+          onClick={handlePillClick}
+          title="Click to select report date"
         >
-          {/* Date & Day */}
-          <div className="d-flex align-items-center gap-2">
-            <Calendar size={16} className="text-white opacity-75 flex-shrink-0" />
-            <div style={{ lineHeight: 1.25 }}>
-              <div className="fw-bold" style={{ fontSize: '0.82rem', letterSpacing: '0.3px' }}>
-                {fullDayName}, {dateStr}
-              </div>
-            </div>
-          </div>
-
-          {/* Separator */}
-          <div style={{ width: '1px', height: '24px', background: 'rgba(255,255,255,0.2)' }} />
-
-          {/* Time */}
-          <div className="d-flex align-items-center gap-2">
-            <Clock size={16} className="text-white opacity-75 flex-shrink-0" />
-            <span className="fw-bold" style={{ fontSize: '0.95rem', letterSpacing: '0.5px', fontVariantNumeric: 'tabular-nums' }}>
-              {liveTimeStr}
-            </span>
-          </div>
-
-          {/* Separator */}
-          <div style={{ width: '1px', height: '24px', background: 'rgba(255,255,255,0.2)' }} />
-
-          {/* Last Updated */}
-          <div style={{ lineHeight: 1.25, fontSize: '0.72rem' }}>
-            <div className="opacity-65">Updated</div>
-            <div className="fw-bold" style={{ fontVariantNumeric: 'tabular-nums' }}>{lastUpdated}</div>
-          </div>
+          <span className="milma-report-date-label">Report date</span>
+          <span className="milma-report-date-val">{formatDDMMYYYY(selectedDate)}</span>
+          <Calendar size={15} className="milma-report-date-icon" />
+          <input
+            ref={dateInputRef}
+            type="date"
+            value={selectedDate || ''}
+            onChange={(e) => onDateChange && onDateChange(e.target.value)}
+            className="milma-hidden-date-input"
+            aria-label="Select report date"
+          />
         </div>
 
-        {/* Controls Section */}
-        <div className="d-flex align-items-center gap-2 border-start border-white border-opacity-25 ps-3">
-          {/* Date Selector: Report Date */}
-          <div className="d-flex align-items-center text-white me-1">
-            <div className="text-end me-2" style={{ lineHeight: 1.35 }}>
-              <div style={{ fontSize: '0.72rem' }}>
-                <span className="opacity-75">Report: </span>
-                <span className="fw-bold" style={{ color: '#fbbf24' }}>{displayDate}</span>
-              </div>
-            </div>
-            <div 
-              className="position-relative bg-white bg-opacity-10 p-2 rounded cursor-pointer d-flex align-items-center justify-content-center" 
-              style={{ width: '32px', height: '32px' }}
-              title="Select date to view corresponding data"
-            >
-              <Calendar size={14} style={{ color: '#fbbf24' }} />
-              <input
-                type="date"
-                value={selectedDate}
-                onChange={(e) => onDateChange(e.target.value)}
-                className="position-absolute top-0 start-0 w-100 h-100 opacity-0 cursor-pointer"
-              />
-            </div>
-          </div>
+        {/* Dark / Light Toggle Button */}
+        <button
+          type="button"
+          onClick={toggleTheme}
+          className="milma-btn-theme-toggle"
+          title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} mode`}
+        >
+          Dark / Light
+        </button>
 
-          {/* Data Entry Panel Button — SOLID PRIMARY */}
-          <button
-            onClick={onOpenDataEntry}
-            className="btn btn-sm d-flex align-items-center gap-1 fw-bold px-3"
-            style={{ 
-              background: '#0059a5', 
-              color: '#ffffff', 
-              border: '1px solid rgba(255,255,255,0.2)',
-              fontSize: '0.78rem',
-              letterSpacing: '0.3px'
-            }}
-            title="Open Data Entry Control Panel"
-          >
-            <Edit2 size={13} />
-            DATA ENTRY
-          </button>
-
-          {/* Refresh Action — Ghost Icon Button */}
-          <button
-            onClick={onManualRefresh}
-            className="btn btn-sm p-2 d-flex align-items-center justify-content-center"
-            style={{
-              background: 'transparent',
-              border: '1px solid rgba(255,255,255,0.2)',
-              color: 'rgba(255,255,255,0.85)',
-              width: '32px',
-              height: '32px'
-            }}
-            title="Force Update Data"
-          >
-            <RefreshCw size={14} />
-          </button>
-
-          {/* Fullscreen Mode — Ghost Icon Button */}
-          <button
-            onClick={toggleFullscreen}
-            onTouchEnd={toggleFullscreen}
-            className="btn btn-sm p-2 d-flex align-items-center justify-content-center"
-            style={{
-              background: 'transparent',
-              border: '1px solid rgba(255,255,255,0.2)',
-              color: 'rgba(255,255,255,0.85)',
-              width: '32px',
-              height: '32px'
-            }}
-            title="Toggle TV Fullscreen Mode"
-          >
-            <Tv size={14} />
-          </button>
-
-          {/* Theme Switcher — Compact Icon-Only Toggle */}
-          <button
-            onClick={toggleTheme}
-            className="btn btn-sm p-2 d-flex align-items-center justify-content-center"
-            style={{
-              background: theme === 'light' ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.1)',
-              border: '1px solid rgba(255,255,255,0.2)',
-              color: '#fbbf24',
-              width: '32px',
-              height: '32px'
-            }}
-            title={theme === 'light' ? 'Switch to Dark Theme' : 'Switch to Light Theme'}
-          >
-            {theme === 'light' ? <Moon size={14} /> : <Sun size={14} />}
-          </button>
-        </div>
+        {/* Data Entry Action Button */}
+        <button
+          type="button"
+          onClick={onOpenDataEntry}
+          className="milma-btn-data-entry"
+          title="Open Data Entry control panel"
+        >
+          {view === 'dashboard' ? 'Data entry' : 'Dashboard'}
+        </button>
       </div>
     </header>
   );

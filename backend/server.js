@@ -306,7 +306,8 @@ app.post('/api/operations', async (req, res) => {
       const stockOutSum = Array.isArray(payload.milkCollectionDetails.stockOuts)
         ? payload.milkCollectionDetails.stockOuts.reduce((s, p) => s + (Number(p.quantity) || 0), 0)
         : 0;
-      payload.milkCollectionDetails.totalCollection = Number((wyd + mdy + outsideSum - stockOutSum).toFixed(2));
+      // Total collection = WYD + MDY ONLY per requirements (stock transfers never deducted)
+      payload.milkCollectionDetails.totalCollection = Number((wyd + mdy).toFixed(2));
       payload.totalCollection = payload.milkCollectionDetails.totalCollection;
     }
 

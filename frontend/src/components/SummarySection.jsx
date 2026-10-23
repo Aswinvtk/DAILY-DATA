@@ -1,500 +1,481 @@
-import React, { useState } from 'react';
-import {
-  Truck, ShoppingCart, CupSoda, Flame,
-  ChevronDown, ChevronUp
-} from 'lucide-react';
+import React from 'react';
+import { Calendar } from 'lucide-react';
 
-const AnimatedValue = ({ value, unit = '', className = '', style }) => {
-  const displayVal = typeof value === 'number' 
-    ? value.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 }) 
-    : (value || '0');
+// Format numbers according to Indian numbering system (e.g. 2,20,000 or -1,82,64,683)
+// For cards: maxDecimals = 0 (no decimals)
+// For table: maxDecimals = 1 (1 decimal if fractional)
+const formatIN = (val, maxDecimals = 0) => {
+  if (val === null || val === undefined || isNaN(val)) return '0';
+  const num = Number(val);
+  const isNegative = num < 0;
+  const absNum = Math.abs(num);
 
-  return (
-    <div className={`${className}`} style={{ fontVariantNumeric: 'tabular-nums', ...style }}>
-      {displayVal} <span style={{ fontSize: '0.6em', opacity: 0.7, fontWeight: 600 }}>{unit}</span>
-    </div>
-  );
+  const hasFraction = maxDecimals > 0 && absNum % 1 !== 0;
+  const formatted = absNum.toLocaleString('en-IN', {
+    minimumFractionDigits: hasFraction ? maxDecimals : 0,
+    maximumFractionDigits: maxDecimals
+  });
+  return isNegative ? `-${formatted}` : formatted;
 };
 
-const SummarySection = ({ data, theme }) => {
-  if (!data) return null;
-  const isDark = theme === 'dark';
+// Format date as DD/MM/YYYY
+const formatDDMMYYYY = (dateStr) => {
+  if (!dateStr) return '';
+  try {
+    const parts = dateStr.split('-');
+    if (parts.length === 3) {
+      return `${parts[2]}/${parts[1]}/${parts[0]}`;
+    }
+  } catch {}
+  return dateStr;
+};
 
-  const [expandedMilk, setExpandedMilk] = useState(true);
-  const [expandedCurd, setExpandedCurd] = useState(true);
-  const [expandedGhee, setExpandedGhee] = useState(true);
-
+const SummarySection = ({ data, selectedDate, onOpenDataEntry }) => {
   // Extract Milk Collection details
-  const colDetails = data.milkCollectionDetails || {};
-  const wydCol = colDetails.wyd || data.collectionData?.wyd || 0;
-  const mdyCol = colDetails.mdy || data.collectionData?.mvd || 0;
+  const colDetails = data?.milkCollectionDetails || {};
+  const wydCol = Number(colDetails.wyd || data?.collectionData?.wyd || 0);
+  const mdyCol = Number(colDetails.mdy || data?.collectionData?.mvd || 0);
+
   const outsidePurchases = Array.isArray(colDetails.outsidePurchases) && colDetails.outsidePurchases.length > 0
-    ? colDetails.outsidePurchases
-    : (data.purchase?.quantity > 0 ? [{ sourceUnit: data.purchase.unitName || 'Outside Unit', quantity: data.purchase.quantity }] : []);
-  const stockOuts = Array.isArray(colDetails.stockOuts) ? colDetails.stockOuts : [];
+    ? colDetails.outsidePurchases.filter(p => (Number(p.quantity) || 0) > 0 || (p.sourceUnit && p.sourceUnit.trim() !== ''))
+    : (data?.purchase?.quantity > 0 ? [{ sourceUnit: data.purchase.unitName || 'Outside Unit', quantity: data.purchase.quantity }] : []);
+
+  const stockOuts = Array.isArray(colDetails.stockOuts)
+    ? colDetails.stockOuts.filter(s => (Number(s.quantity) || 0) > 0 || (s.destinationUnit && s.destinationUnit.trim() !== ''))
+    : [];
 
   const totalOutsidePurchase = outsidePurchases.reduce((sum, item) => sum + (Number(item.quantity) || 0), 0);
   const totalStockOut = stockOuts.reduce((sum, item) => sum + (Number(item.quantity) || 0), 0);
 
-  const calculatedTotalCollection = colDetails.totalCollection !== undefined
-    ? colDetails.totalCollection
-    : (wydCol + mdyCol + totalOutsidePurchase - totalStockOut);
+  // Requirement 3: Total milk collected = Wayanad Dairy (WYD) + Manathavady (MDY) ONLY.
+  // Do NOT add outside purchase. Do NOT subtract stock transfers.
+  const totalCollected = wydCol + mdyCol;
 
   // Extract MBS Consolidated Product Groups
-  const groups = data.mbsProductGroups || {};
-  const milkGroup = groups.milk || { totalOB: 0, totalNetProd: 0, totalInvQty: data.milkSale?.total || 0, totalCB: 0, products: [] };
-  const curdGroup = groups.curd || { totalOB: 0, totalNetProd: 0, totalInvQty: data.curdSale?.total || 0, totalCB: 0, products: [] };
-  const gheeGroup = groups.ghee || { totalOB: 0, totalNetProd: 0, totalInvQty: data.gheeNetSale || 0, totalCB: 0, products: [] };
+  const groups = data?.mbsProductGroups || {};
+  const milkGroup = groups.milk || { totalOB: 0, totalNetProd: 0, totalInvQty: data?.milkSale?.total || 0, totalCB: 0 };
+  const curdGroup = groups.curd || { totalOB: 0, totalNetProd: 0, totalInvQty: data?.curdSale?.total || 0, totalCB: 0 };
+  const gheeGroup = groups.ghee || { totalOB: 0, totalNetProd: 0, totalInvQty: data?.gheeNetSale || 0, totalCB: 0 };
 
-  const butterGroup = groups.butter || { totalOB: 0, totalNetProd: 0, totalInvQty: data.butterNetSale || 0, totalCB: 0 };
-  const paneerGroup = groups.paneer || { totalOB: 0, totalNetProd: 0, totalInvQty: 0, totalCB: 0 };
-  const pedaGroup = groups.peda || { totalOB: 0, totalNetProd: 0, totalInvQty: data.pedaNetSale || 0, totalCB: 0 };
-  const paladaGroup = groups.palada || { totalOB: 0, totalNetProd: 0, totalInvQty: data.paladaNetSale || 0, totalCB: 0 };
-  const gheeBiscuitGroup = groups.gheeBiscuit || { totalOB: 0, totalNetProd: 0, totalInvQty: 0, totalCB: 0 };
+  const butterGroup = groups.butter || { totalOB: 0, totalNetProd: 0, totalInvQty: data?.butterNetSale || 0, totalCB: 0 };
+  const paneerGroup = groups.paneer || { totalOB: 0, totalNetProd: 0, totalInvQty: data?.paneerNetSale || 0, totalCB: 0 };
+  const pedaGroup = groups.peda || { totalOB: 0, totalNetProd: 0, totalInvQty: data?.pedaNetSale || 0, totalCB: 0 };
+  const paladaGroup = groups.palada || { totalOB: 0, totalNetProd: 0, totalInvQty: data?.paladaNetSale || 0, totalCB: 0 };
+  const gheeBiscuitGroup = groups.gheeBiscuit || { totalOB: 0, totalNetProd: 0, totalInvQty: data?.gheeBiscuitNetSale || 0, totalCB: 0 };
   const condensedMilkGroup = groups.condensedMilk || { totalOB: 0, totalNetProd: 0, totalInvQty: 0, totalCB: 0 };
-  const otherGroup = groups.other || { totalOB: 0, totalNetProd: 0, totalInvQty: 0, totalCB: 0 };
 
-  // Semantic color system — purpose-driven, not product-driven
-  const sem = {
-    production:  isDark ? '#4ade80' : '#166534',
-    sale:        isDark ? '#60a5fa' : '#1d4ed8',
-    obCb:        isDark ? '#f8fafc' : '#0f172a',
-    label:       isDark ? '#94a3b8' : '#334155',
-    warning:     isDark ? '#fbbf24' : '#b45309',
-    danger:      isDark ? '#f87171' : '#dc2626',
-    collection:  isDark ? '#4ade80' : '#15803d',
-    // Card backgrounds
-    cardBg:      isDark ? '#0d1527' : '#ffffff',
-    cardBorder:  isDark ? 'rgba(255, 255, 255, 0.12)' : '#cbd5e1',
-    headerText:  isDark ? '#ffffff' : '#0f172a',
-    boxBg:       isDark ? 'rgba(255, 255, 255, 0.04)' : '#f8fafc',
-    boxBorder:   isDark ? 'rgba(255, 255, 255, 0.08)' : '#e2e8f0',
-    // Subtle semantic backgrounds
-    prodBg:      isDark ? 'rgba(74, 222, 128, 0.08)' : 'rgba(22, 101, 52, 0.04)',
-    saleBg:      isDark ? 'rgba(96, 165, 250, 0.1)' : 'rgba(29, 78, 216, 0.05)',
-    obCbBg:      isDark ? 'rgba(255, 255, 255, 0.04)' : '#f8fafc',
-  };
+  const milkProd = Number(milkGroup.totalNetProd || 0);
+  const milkSale = Number(milkGroup.totalInvQty || 0);
 
-  // Bottom 7 product category tiles
-  const bottomTiles = [
-    { id: 'butter', title: 'BUTTER', groupData: butterGroup, unit: 'Kg' },
-    { id: 'paneer', title: 'PANEER', groupData: paneerGroup, unit: 'Kg' },
-    { id: 'peda', title: 'PEDA', groupData: pedaGroup, unit: 'Kg' },
-    { id: 'palada', title: 'PALADA', groupData: paladaGroup, unit: 'Kg' },
-    { id: 'ghee-biscuit', title: 'GHEE BISCUIT', groupData: gheeBiscuitGroup, unit: 'Kg' },
-    { id: 'condensed-milk', title: 'CONDENSED MILK', groupData: condensedMilkGroup, unit: 'Kg' },
-    { id: 'other', title: 'OTHER PRODUCTS', groupData: otherGroup, unit: 'Kg' }
+  const curdProd = Number(curdGroup.totalNetProd || 0);
+  const curdSale = Number(curdGroup.totalInvQty || 0);
+
+  const gheeProd = Number(gheeGroup.totalNetProd || 0);
+  const gheeSale = Number(gheeGroup.totalInvQty || 0);
+
+  // Check if date has no data
+  const isNoData = !data || data.status === 'No Data' || (
+    wydCol === 0 &&
+    mdyCol === 0 &&
+    totalOutsidePurchase === 0 &&
+    totalStockOut === 0 &&
+    milkProd === 0 &&
+    milkSale === 0 &&
+    curdProd === 0 &&
+    curdSale === 0 &&
+    gheeProd === 0 &&
+    gheeSale === 0
+  );
+
+  // Empty-state card per Requirement 1
+  if (isNoData) {
+    const formattedDate = formatDDMMYYYY(selectedDate) || selectedDate || 'the selected date';
+    return (
+      <div className="milma-empty-container">
+        <div className="milma-empty-card">
+          <div className="milma-empty-icon-circle">
+            <Calendar size={32} className="milma-empty-icon" />
+          </div>
+          <h3 className="milma-empty-text">
+            No data for {formattedDate}. Pick another date or add figures in Data entry.
+          </h3>
+          <button
+            type="button"
+            className="milma-empty-entry-btn"
+            onClick={onOpenDataEntry}
+          >
+            Go to Data entry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Row 2 Donut calculation: WYD vs MDY ONLY (do not show outside purchase)
+  const wydMdyTotal = wydCol + mdyCol;
+  const wydPct = wydMdyTotal > 0 ? Math.round((wydCol / wydMdyTotal) * 100) : 0;
+  const mdyPct = wydMdyTotal > 0 ? (100 - wydPct) : 0;
+
+  // SVG Donut geometry
+  const radius = 54;
+  const circumference = 2 * Math.PI * radius; // ~339.292
+  const wydArc = (wydPct / 100) * circumference;
+  const mdyArc = (mdyPct / 100) * circumference;
+
+  // Products List for bottom table per Requirement 5
+  const productsList = [
+    { name: 'Butter', unit: 'Kg', group: butterGroup },
+    { name: 'Paneer', unit: 'Kg', group: paneerGroup },
+    { name: 'Peda', unit: 'Kg', group: pedaGroup },
+    { name: 'Palada', unit: 'Kg', group: paladaGroup },
+    { name: 'Ghee biscuit', unit: 'Kg', group: gheeBiscuitGroup },
+    { name: 'Condensed milk', unit: 'Kg', group: condensedMilkGroup }
   ];
 
-  // Reusable metric box for the top 4 cards (OB / PROD / SALE / CB)
-  const MetricBox = ({ label, value, unit, color, bgColor, borderColor, isSale = false }) => (
-    <div 
-      className="p-2 rounded-3 text-center" 
-      style={{ 
-        background: bgColor || sem.obCbBg, 
-        border: borderColor ? `1px solid ${borderColor}` : `1px solid ${sem.boxBorder}` 
-      }}
-    >
-      <div 
-        className="fw-bold text-uppercase" 
-        style={{ fontSize: '0.72rem', color: sem.label, letterSpacing: '0.5px' }}
-      >
-        {label}
+  return (
+    <div className="milma-dashboard-content">
+      {/* ========================================================= */}
+      {/* ROW 1: Four Equal-Width Cards                             */}
+      {/* ========================================================= */}
+      <div className="milma-kpi-grid-4">
+        {/* Card 1: Total milk collected (Solid Blue Highlight) */}
+        <div className="milma-kpi-card milma-kpi-blue">
+          <div className="milma-kpi-title">Total milk collected</div>
+          <div className="milma-kpi-value">
+            {formatIN(totalCollected)}{' '}
+            <span className="milma-kpi-unit">L</span>
+          </div>
+          <div className="milma-kpi-subtext">
+            Wayanad Dairy + Manathavady
+          </div>
+        </div>
+
+        {/* Card 2: Outside purchase */}
+        <div className="milma-kpi-card">
+          <div className="milma-kpi-title">Outside purchase</div>
+          <div className="milma-kpi-value">
+            {formatIN(totalOutsidePurchase)}{' '}
+            <span className="milma-kpi-unit">L</span>
+          </div>
+          <div className="milma-card-list">
+            {outsidePurchases.length > 0 ? (
+              outsidePurchases.map((p, idx) => (
+                <div key={idx} className="milma-card-list-row">
+                  <span className="milma-list-label">{p.sourceUnit || 'Outside Supplier'}</span>
+                  <span className="milma-list-val">{formatIN(p.quantity)} L</span>
+                </div>
+              ))
+            ) : (
+              <div className="milma-card-list-empty">No outside purchases</div>
+            )}
+          </div>
+        </div>
+
+        {/* Card 3: Milk sale */}
+        <div className="milma-kpi-card">
+          <div className="milma-kpi-title">Milk sale</div>
+          <div className="milma-kpi-value">
+            {formatIN(milkSale)}{' '}
+            <span className="milma-kpi-unit">L</span>
+          </div>
+          <div className="milma-kpi-subtext">Today's milk sale</div>
+        </div>
+
+        {/* Card 4: Stock out (stock transfers) */}
+        <div className="milma-kpi-card">
+          <div className="milma-kpi-title">Stock out (transfers)</div>
+          <div className="milma-kpi-value">
+            {formatIN(totalStockOut)}{' '}
+            <span className="milma-kpi-unit">L</span>
+          </div>
+          <div className="milma-card-list">
+            {stockOuts.length > 0 ? (
+              stockOuts.map((s, idx) => (
+                <div key={idx} className="milma-card-list-row">
+                  <span className="milma-list-label">{s.destinationUnit || 'Unit not specified'}</span>
+                  <span className="milma-list-val">{formatIN(s.quantity)} L</span>
+                </div>
+              ))
+            ) : (
+              <div className="milma-card-list-empty">No transfers today</div>
+            )}
+          </div>
+        </div>
       </div>
-      <AnimatedValue 
-        value={value} 
-        unit={unit} 
-        className="fw-black font-monospace" 
-        style={{ color, fontSize: isSale ? '1.25rem' : '1.15rem' }} 
-      />
-    </div>
-  );
 
-  // Reusable product list for collapsible variant sales
-  const ProductSalesList = ({ products, saleColor, expanded, setExpanded, title = 'Product-wise Sales' }) => (
-    <div className="border-top pt-2">
-      <button 
-        className="btn btn-sm w-100 d-flex align-items-center justify-content-between p-1 fw-bold"
-        style={{ fontSize: '0.75rem', color: sem.label }}
-        onClick={() => setExpanded(!expanded)}
-      >
-        <span className="fw-bold text-uppercase">{title}</span>
-        {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-      </button>
+      {/* ========================================================= */}
+      {/* ROW 2: Four Equal-Width, Equal-Height Cards               */}
+      {/* ========================================================= */}
+      <div className="milma-row2-grid-4">
+        {/* Card 1: Where the milk came from (Donut Chart) */}
+        <div className="milma-card milma-donut-card">
+          <h2 className="milma-card-title">Where the milk came from</h2>
 
-      {expanded && (
-        <div 
-          className="d-flex flex-column gap-1 mt-1 overflow-y-auto pe-1 position-relative" 
-          style={{ maxHeight: '150px', fontSize: '0.75rem' }}
-        >
-          {products && products.length > 0 ? (
-            products.map(p => (
-              <div 
-                key={p.code} 
-                className="d-flex align-items-center justify-content-between p-1 px-2 rounded" 
-                style={{ background: sem.boxBg, border: `1px solid ${sem.boxBorder}` }}
+          <div className="milma-donut-wrapper">
+            <svg
+              className="milma-donut-svg"
+              width="150"
+              height="150"
+              viewBox="0 0 150 150"
+            >
+              {/* Background circle track */}
+              <circle
+                cx="75"
+                cy="75"
+                r={radius}
+                className="milma-donut-bg-track"
+                fill="none"
+                strokeWidth="16"
+              />
+
+              {/* Rotated segment container starting at 12 o'clock */}
+              <g transform="rotate(-90 75 75)">
+                {/* WYD Segment (Dark Blue) */}
+                {wydMdyTotal > 0 && wydArc > 0 && (
+                  <circle
+                    cx="75"
+                    cy="75"
+                    r={radius}
+                    fill="none"
+                    stroke="#0b57d0"
+                    strokeWidth="16"
+                    strokeDasharray={`${wydArc} ${circumference}`}
+                    strokeDashoffset="0"
+                  />
+                )}
+                {/* MDY Segment (Light Blue) */}
+                {wydMdyTotal > 0 && mdyArc > 0 && (
+                  <circle
+                    cx="75"
+                    cy="75"
+                    r={radius}
+                    fill="none"
+                    stroke="#38bdf8"
+                    strokeWidth="16"
+                    strokeDasharray={`${mdyArc} ${circumference}`}
+                    strokeDashoffset={`-${wydArc}`}
+                  />
+                )}
+              </g>
+
+              {/* Center Value and Label */}
+              <text
+                x="75"
+                y="71"
+                textAnchor="middle"
+                className="milma-donut-val"
               >
-                <span className="fw-medium" style={{ color: sem.headerText, whiteSpace: 'normal', lineHeight: 1.3 }}>
-                  {p.name}
-                  <sup style={{ fontSize: '0.55rem', color: sem.label, marginLeft: '3px', fontWeight: 500 }}>{p.code}</sup>
-                </span>
-                <span 
-                  className="fw-black font-monospace text-nowrap ms-2" 
-                  style={{ color: saleColor, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}
-                >
-                  {p.invQtyConverted.toLocaleString()} L
-                </span>
+                {formatIN(wydMdyTotal)}
+              </text>
+              <text
+                x="75"
+                y="88"
+                textAnchor="middle"
+                className="milma-donut-lbl"
+              >
+                LITRES
+              </text>
+            </svg>
+          </div>
+
+          {/* Legend */}
+          <div className="milma-donut-legend">
+            <div className="milma-legend-row">
+              <div className="milma-legend-label">
+                <span className="milma-color-dot milma-dot-wyd" />
+                <span>Wayanad Dairy (WYD)</span>
               </div>
-            ))
-          ) : (
-            <div className="fst-italic p-1" style={{ fontSize: '0.72rem', color: sem.label }}>No variety sales data</div>
+              <div className="milma-legend-val">
+                {formatIN(wydCol)} L ({wydPct}%)
+              </div>
+            </div>
+
+            <div className="milma-legend-row">
+              <div className="milma-legend-label">
+                <span className="milma-color-dot milma-dot-mdy" />
+                <span>Manathavady (MDY)</span>
+              </div>
+              <div className="milma-legend-val">
+                {formatIN(mdyCol)} L ({mdyPct}%)
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Card 2: Milk details */}
+        <div className="milma-card milma-detail-card">
+          <h2 className="milma-card-title">Milk details</h2>
+
+          <div className="milma-detail-metric">
+            <span className="milma-detail-metric-label">Production</span>
+            <div className="milma-metric-huge">
+              {formatIN(milkProd)}{' '}
+              <span className="milma-metric-unit">L</span>
+            </div>
+          </div>
+
+          <div className="milma-detail-metric">
+            <span className="milma-detail-metric-label">Sale</span>
+            <div className="milma-metric-huge">
+              {formatIN(milkSale)}{' '}
+              <span className="milma-metric-unit">L</span>
+            </div>
+          </div>
+
+          <div className="milma-detail-bottom">
+            <div className="milma-balance-item">
+              <span className="milma-balance-lbl">Opening</span>
+              <span className={`milma-balance-num ${Number(milkGroup.totalOB) < 0 ? 'milma-val-negative' : ''}`}>
+                {formatIN(milkGroup.totalOB)}
+              </span>
+            </div>
+            <div className="milma-balance-item text-end">
+              <span className="milma-balance-lbl">Closing</span>
+              <span className={`milma-balance-num ${Number(milkGroup.totalCB) < 0 ? 'milma-val-negative' : ''}`}>
+                {formatIN(milkGroup.totalCB)}
+              </span>
+            </div>
+          </div>
+
+          {Number(milkGroup.totalCB) < 0 && (
+            <div className="milma-badge-negative mt-2">Negative stock</div>
           )}
         </div>
-      )}
-    </div>
-  );
 
-  return (
-    <div className="section-summary-wrapper">
+        {/* Card 3: Curd details */}
+        <div className="milma-card milma-detail-card">
+          <h2 className="milma-card-title">Curd details</h2>
 
-      {/* TOP SECTION: 4 MAIN TILES */}
-      <div className="row g-3 mb-3">
-        
-        {/* TILE 1: MILK COLLECTION */}
-        <div className="col-12 col-xl-3 col-md-6">
-          <div 
-            className="card h-100 shadow-sm border-0 rounded-4 overflow-hidden position-relative"
-            style={{ 
-              background: sem.cardBg,
-              border: `1px solid ${sem.cardBorder}`
-            }}
-          >
-            <div className="card-header bg-transparent border-0 pt-3 px-3 d-flex align-items-center justify-content-between">
-              <div className="d-flex align-items-center gap-2">
-                <div className="p-2 rounded-3" style={{ background: 'rgba(34,197,94,0.15)', color: '#22c55e' }}>
-                  <Truck size={18} />
-                </div>
-                <h6 className="fw-black text-uppercase mb-0 tracking-wider" style={{ fontSize: '0.92rem', color: sem.headerText }}>
-                  MILK COLLECTION
-                </h6>
-              </div>
-            </div>
-
-            <div className="card-body p-3 d-flex flex-column justify-content-between">
-              {/* Total Collection Highlight */}
-              <div 
-                className="p-3 rounded-3 text-center mb-3 position-relative"
-                style={{ 
-                  background: isDark ? 'rgba(34,197,94,0.1)' : 'rgba(34,197,94,0.06)',
-                  border: '1px solid rgba(34,197,94,0.35)'
-                }}
-              >
-                <div className="text-uppercase fw-bold" style={{ fontSize: '0.72rem', color: sem.collection, letterSpacing: '0.5px' }}>
-                  TOTAL MILK COLLECTION
-                </div>
-                <AnimatedValue 
-                  value={calculatedTotalCollection} 
-                  unit="Ltr" 
-                  className="fw-black my-1" 
-                  style={{ fontSize: '1.9rem', color: sem.collection }}
-                />
-              </div>
-
-              {/* Source breakdown list */}
-              <div className="d-flex flex-column gap-2" style={{ fontSize: '0.78rem' }}>
-                <div className="d-flex align-items-center justify-content-between p-2 rounded-2" style={{ background: sem.boxBg, border: `1px solid ${sem.boxBorder}` }}>
-                  <span className="fw-bold" style={{ color: sem.label }}>Wayanad Dairy (WYD)</span>
-                  <span className="fw-black font-monospace" style={{ color: sem.collection }}>{wydCol.toLocaleString()} L</span>
-                </div>
-
-                <div className="d-flex align-items-center justify-content-between p-2 rounded-2" style={{ background: sem.boxBg, border: `1px solid ${sem.boxBorder}` }}>
-                  <span className="fw-bold" style={{ color: sem.label }}>Mananthavady (MDY)</span>
-                  <span className="fw-black font-monospace" style={{ color: sem.collection }}>{mdyCol.toLocaleString()} L</span>
-                </div>
-
-                {/* Outside Purchase list */}
-                <div className="border-top pt-2 mt-1">
-                  <div className="d-flex align-items-center justify-content-between mb-1" style={{ fontSize: '0.75rem' }}>
-                    <span className="fw-black text-uppercase" style={{ color: sem.warning }}>Outside Purchase</span>
-                    <span className="fw-black font-monospace" style={{ color: sem.warning }}>+{totalOutsidePurchase.toLocaleString()} L</span>
-                  </div>
-                  {outsidePurchases.length > 0 ? (
-                    outsidePurchases.map((p, idx) => (
-                      <div key={idx} className="d-flex justify-content-between px-2 py-1 rounded ms-2 mb-1" style={{ background: isDark ? 'rgba(245,158,11,0.1)' : 'rgba(245,158,11,0.06)', fontSize: '0.72rem' }}>
-                        <span className="text-truncate fw-medium" style={{ maxWidth: '120px', color: sem.headerText }}>{p.sourceUnit || 'Outside Unit'}</span>
-                        <span className="font-monospace fw-black" style={{ color: sem.warning }}>{Number(p.quantity || 0).toLocaleString()} L</span>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="fst-italic px-2" style={{ fontSize: '0.72rem', color: sem.label }}>None</div>
-                  )}
-                </div>
-
-                {/* Stock Out list */}
-                <div className="border-top pt-2">
-                  <div className="d-flex align-items-center justify-content-between mb-1" style={{ fontSize: '0.75rem' }}>
-                    <span className="fw-black text-uppercase" style={{ color: sem.danger }}>Stock Out</span>
-                    <span className="fw-black font-monospace" style={{ color: sem.danger }}>-{totalStockOut.toLocaleString()} L</span>
-                  </div>
-                  {stockOuts.length > 0 ? (
-                    stockOuts.map((s, idx) => (
-                      <div key={idx} className="d-flex justify-content-between px-2 py-1 rounded ms-2 mb-1" style={{ background: isDark ? 'rgba(239,68,68,0.1)' : 'rgba(239,68,68,0.06)', fontSize: '0.72rem' }}>
-                        <span className="text-truncate fw-medium" style={{ maxWidth: '120px', color: sem.headerText }}>{s.destinationUnit || 'Unit'}</span>
-                        <span className="font-monospace fw-black" style={{ color: sem.danger }}>{Number(s.quantity || 0).toLocaleString()} L</span>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="fst-italic px-2" style={{ fontSize: '0.72rem', color: sem.label }}>None</div>
-                  )}
-                </div>
-              </div>
-
+          <div className="milma-detail-metric">
+            <span className="milma-detail-metric-label">Production</span>
+            <div className="milma-metric-huge">
+              {formatIN(curdProd)}{' '}
+              <span className="milma-metric-unit">L/Kg</span>
             </div>
           </div>
-        </div>
 
-        {/* TILE 2: MILK */}
-        <div className="col-12 col-xl-3 col-md-6">
-          <div 
-            className="card h-100 shadow-sm border-0 rounded-4 overflow-hidden"
-            style={{ 
-              background: sem.cardBg,
-              border: `1px solid ${sem.cardBorder}`
-            }}
-          >
-            <div className="card-header bg-transparent border-0 pt-3 px-3 d-flex align-items-center justify-content-between">
-              <div className="d-flex align-items-center gap-2">
-                <div className="p-2 rounded-3" style={{ background: 'rgba(59,130,246,0.15)', color: '#3b82f6' }}>
-                  <ShoppingCart size={18} />
-                </div>
-                <h6 className="fw-black text-uppercase mb-0 tracking-wider" style={{ fontSize: '0.92rem', color: sem.headerText }}>
-                  MILK
-                </h6>
-              </div>
-            </div>
-
-            <div className="card-body p-3 d-flex flex-column justify-content-between">
-              <div className="row g-2 mb-3">
-                <div className="col-6">
-                  <MetricBox label="OB" value={milkGroup.totalOB} unit="L" color={sem.obCb} />
-                </div>
-                <div className="col-6">
-                  <MetricBox label="PRODUCTION" value={milkGroup.totalNetProd} unit="L" color={sem.production} bgColor={sem.prodBg} borderColor={isDark ? 'rgba(74,222,128,0.2)' : 'rgba(22,101,52,0.15)'} />
-                </div>
-                <div className="col-6">
-                  <MetricBox label="SALE" value={milkGroup.totalInvQty} unit="L" color={sem.sale} bgColor={sem.saleBg} borderColor={isDark ? 'rgba(96,165,250,0.3)' : 'rgba(29,78,216,0.2)'} isSale />
-                </div>
-                <div className="col-6">
-                  <MetricBox label="CB" value={milkGroup.totalCB} unit="L" color={sem.obCb} />
-                </div>
-              </div>
-
-              <ProductSalesList 
-                products={milkGroup.products} 
-                saleColor={sem.sale} 
-                expanded={expandedMilk} 
-                setExpanded={setExpandedMilk} 
-              />
+          <div className="milma-detail-metric">
+            <span className="milma-detail-metric-label">Sale</span>
+            <div className="milma-metric-huge">
+              {formatIN(curdSale)}{' '}
+              <span className="milma-metric-unit">L/Kg</span>
             </div>
           </div>
-        </div>
 
-        {/* TILE 3: CURD */}
-        <div className="col-12 col-xl-3 col-md-6">
-          <div 
-            className="card h-100 shadow-sm border-0 rounded-4 overflow-hidden"
-            style={{ 
-              background: sem.cardBg,
-              border: `1px solid ${sem.cardBorder}`
-            }}
-          >
-            <div className="card-header bg-transparent border-0 pt-3 px-3 d-flex align-items-center justify-content-between">
-              <div className="d-flex align-items-center gap-2">
-                <div className="p-2 rounded-3" style={{ background: 'rgba(16,185,129,0.15)', color: '#10b981' }}>
-                  <CupSoda size={18} />
-                </div>
-                <h6 className="fw-black text-uppercase mb-0 tracking-wider" style={{ fontSize: '0.92rem', color: sem.headerText }}>
-                  CURD
-                </h6>
-              </div>
+          <div className="milma-detail-bottom">
+            <div className="milma-balance-item">
+              <span className="milma-balance-lbl">Opening</span>
+              <span className={`milma-balance-num ${Number(curdGroup.totalOB) < 0 ? 'milma-val-negative' : ''}`}>
+                {formatIN(curdGroup.totalOB)}
+              </span>
             </div>
-
-            <div className="card-body p-3 d-flex flex-column justify-content-between">
-              <div className="row g-2 mb-3">
-                <div className="col-6">
-                  <MetricBox label="OB" value={curdGroup.totalOB} unit="L/Kg" color={sem.obCb} />
-                </div>
-                <div className="col-6">
-                  <MetricBox label="PRODUCTION" value={curdGroup.totalNetProd} unit="L/Kg" color={sem.production} bgColor={sem.prodBg} borderColor={isDark ? 'rgba(74,222,128,0.2)' : 'rgba(22,101,52,0.15)'} />
-                </div>
-                <div className="col-6">
-                  <MetricBox label="SALE" value={curdGroup.totalInvQty} unit="L/Kg" color={sem.sale} bgColor={sem.saleBg} borderColor={isDark ? 'rgba(96,165,250,0.3)' : 'rgba(29,78,216,0.2)'} isSale />
-                </div>
-                <div className="col-6">
-                  <MetricBox label="CB" value={curdGroup.totalCB} unit="L/Kg" color={sem.obCb} />
-                </div>
-              </div>
-
-              <ProductSalesList 
-                products={curdGroup.products} 
-                saleColor={sem.sale} 
-                expanded={expandedCurd} 
-                setExpanded={setExpandedCurd} 
-              />
+            <div className="milma-balance-item text-end">
+              <span className="milma-balance-lbl">Closing</span>
+              <span className={`milma-balance-num ${Number(curdGroup.totalCB) < 0 ? 'milma-val-negative' : ''}`}>
+                {formatIN(curdGroup.totalCB)}
+              </span>
             </div>
           </div>
+
+          {Number(curdGroup.totalCB) < 0 && (
+            <div className="milma-badge-negative mt-2">Negative stock</div>
+          )}
         </div>
 
-        {/* TILE 4: GHEE */}
-        <div className="col-12 col-xl-3 col-md-6">
-          <div 
-            className="card h-100 shadow-sm border-0 rounded-4 overflow-hidden"
-            style={{ 
-              background: sem.cardBg,
-              border: `1px solid ${sem.cardBorder}`
-            }}
-          >
-            <div className="card-header bg-transparent border-0 pt-3 px-3 d-flex align-items-center justify-content-between">
-              <div className="d-flex align-items-center gap-2">
-                <div className="p-2 rounded-3" style={{ background: 'rgba(245,158,11,0.15)', color: '#f59e0b' }}>
-                  <Flame size={18} />
-                </div>
-                <h6 className="fw-black text-uppercase mb-0 tracking-wider" style={{ fontSize: '0.92rem', color: sem.headerText }}>
-                  GHEE
-                </h6>
-              </div>
-            </div>
+        {/* Card 4: Ghee details */}
+        <div className="milma-card milma-detail-card">
+          <h2 className="milma-card-title">Ghee details</h2>
 
-            <div className="card-body p-3 d-flex flex-column justify-content-between">
-              <div className="row g-2 mb-3">
-                <div className="col-6">
-                  <MetricBox label="OB" value={gheeGroup.totalOB} unit="L" color={sem.obCb} />
-                </div>
-                <div className="col-6">
-                  <MetricBox label="PRODUCTION" value={gheeGroup.totalNetProd} unit="L" color={sem.production} bgColor={sem.prodBg} borderColor={isDark ? 'rgba(74,222,128,0.2)' : 'rgba(22,101,52,0.15)'} />
-                </div>
-                <div className="col-6">
-                  {/* Ghee SALE: uses amber in light mode for WCAG AA compliance (not yellow) */}
-                  <MetricBox label="SALE" value={gheeGroup.totalInvQty} unit="L" color={sem.sale} bgColor={sem.saleBg} borderColor={isDark ? 'rgba(96,165,250,0.3)' : 'rgba(29,78,216,0.2)'} isSale />
-                </div>
-                <div className="col-6">
-                  <MetricBox label="CB" value={gheeGroup.totalCB} unit="L" color={sem.obCb} />
-                </div>
-              </div>
-
-              <ProductSalesList 
-                products={gheeGroup.products} 
-                saleColor={sem.sale} 
-                expanded={expandedGhee} 
-                setExpanded={setExpandedGhee} 
-                title="Major Product Sales"
-              />
+          <div className="milma-detail-metric">
+            <span className="milma-detail-metric-label">Production</span>
+            <div className="milma-metric-huge">
+              {formatIN(gheeProd)}{' '}
+              <span className="milma-metric-unit">L</span>
             </div>
           </div>
-        </div>
 
+          <div className="milma-detail-metric">
+            <span className="milma-detail-metric-label">Sale</span>
+            <div className="milma-metric-huge">
+              {formatIN(gheeSale)}{' '}
+              <span className="milma-metric-unit">L</span>
+            </div>
+          </div>
+
+          <div className="milma-detail-bottom">
+            <div className="milma-balance-item">
+              <span className="milma-balance-lbl">Opening</span>
+              <span className={`milma-balance-num ${Number(gheeGroup.totalOB) < 0 ? 'milma-val-negative' : ''}`}>
+                {formatIN(gheeGroup.totalOB)}
+              </span>
+            </div>
+            <div className="milma-balance-item text-end">
+              <span className="milma-balance-lbl">Closing</span>
+              <span className={`milma-balance-num ${Number(gheeGroup.totalCB) < 0 ? 'milma-val-negative' : ''}`}>
+                {formatIN(gheeGroup.totalCB)}
+              </span>
+            </div>
+          </div>
+
+          {Number(gheeGroup.totalCB) < 0 && (
+            <div className="milma-badge-negative mt-2">Negative stock</div>
+          )}
+        </div>
       </div>
 
-      {/* BOTTOM SECTION: 7 TILES — CLEAN BORDERLESS 4-COLUMN MICRO-GRID */}
-      <div 
-        style={{ 
-          display: 'grid', 
-          gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', 
-          gap: '10px', 
-          width: '100%',
-          alignItems: 'stretch'
-        }}
-      >
-        {bottomTiles.map(tile => (
-          <div key={tile.id} style={{ minWidth: 0 }}>
-            <div 
-              className="card h-100 border-0 rounded-4 shadow-sm overflow-hidden d-flex flex-column"
-              style={{ 
-                background: sem.cardBg,
-                border: `1px solid ${sem.cardBorder}`,
-                boxShadow: isDark ? '0 4px 12px rgba(0,0,0,0.3)' : '0 2px 6px rgba(0,0,0,0.05)'
-              }}
-            >
-              {/* Tile Header: GROUP NAME */}
-              <div 
-                className="p-2 text-center border-bottom"
-                style={{ 
-                  background: isDark ? 'rgba(255, 255, 255, 0.05)' : '#f1f5f9',
-                  borderColor: sem.boxBorder
-                }}
-              >
-                <h6 
-                  className="fw-black text-uppercase mb-0 text-truncate" 
-                  style={{ 
-                    fontSize: '0.78rem', 
-                    letterSpacing: '0.5px',
-                    color: sem.headerText 
-                  }}
-                  title={tile.title}
-                >
-                  {tile.title}
-                </h6>
-              </div>
+      {/* ========================================================= */}
+      {/* ROW 3: Product-wise Breakdown (Full-Width Table)          */}
+      {/* ========================================================= */}
+      <div className="milma-card milma-card-table">
+        <h2 className="milma-card-title">Product-wise breakdown</h2>
 
-              {/* Borderless 4-Column Micro-Grid: OB | PROD | SALE | CB */}
-              <div 
-                className="flex-grow-1 p-2"
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: '1fr 1fr',
-                  gap: '6px',
-                }}
-              >
-                {/* OB */}
-                <div className="text-center p-1 rounded-2" style={{ background: sem.obCbBg }}>
-                  <div className="fw-bold text-uppercase" style={{ fontSize: '0.65rem', color: sem.label, letterSpacing: '0.5px' }}>
-                    OB
-                  </div>
-                  <div className="fw-black font-monospace" style={{ fontSize: '1.1rem', color: sem.obCb, fontVariantNumeric: 'tabular-nums' }}>
-                    {(tile.groupData.totalOB || 0).toLocaleString()}
-                    <span style={{ fontSize: '0.55em', opacity: 0.7, fontWeight: 600, marginLeft: '2px' }}>{tile.unit}</span>
-                  </div>
-                </div>
+        <div className="milma-table-container">
+          <table className="milma-products-table">
+            <thead>
+              <tr>
+                <th className="milma-th-left">Product (Kg)</th>
+                <th className="milma-th-right">Opening</th>
+                <th className="milma-th-right">Production</th>
+                <th className="milma-th-right">Sale</th>
+                <th className="milma-th-right">Closing</th>
+                <th className="milma-th-right">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {productsList.map((item) => {
+                const ob = Number(item.group?.totalOB || 0);
+                const prod = Number(item.group?.totalNetProd || 0);
+                const sale = Number(item.group?.totalInvQty || 0);
+                const cb = Number(item.group?.totalCB || 0);
+                const isNoActivity = ob === 0 && prod === 0 && sale === 0 && cb === 0;
 
-                {/* PRODUCTION */}
-                <div className="text-center p-1 rounded-2" style={{ background: sem.prodBg }}>
-                  <div className="fw-bold text-uppercase" style={{ fontSize: '0.65rem', color: sem.label, letterSpacing: '0.5px' }}>
-                    PROD
-                  </div>
-                  <div className="fw-black font-monospace" style={{ fontSize: '1.1rem', color: sem.production, fontVariantNumeric: 'tabular-nums' }}>
-                    {(tile.groupData.totalNetProd || 0).toLocaleString()}
-                    <span style={{ fontSize: '0.55em', opacity: 0.7, fontWeight: 600, marginLeft: '2px' }}>{tile.unit}</span>
-                  </div>
-                </div>
-
-                {/* SALE — visually emphasized */}
-                <div className="text-center p-1 rounded-2" style={{ background: sem.saleBg, border: isDark ? '1px solid rgba(96,165,250,0.25)' : '1px solid rgba(29,78,216,0.15)' }}>
-                  <div className="fw-black text-uppercase" style={{ fontSize: '0.65rem', color: sem.sale, letterSpacing: '0.5px' }}>
-                    SALE
-                  </div>
-                  <div className="fw-black font-monospace" style={{ fontSize: '1.2rem', color: sem.sale, fontVariantNumeric: 'tabular-nums' }}>
-                    {(tile.groupData.totalInvQty || 0).toLocaleString()}
-                    <span style={{ fontSize: '0.55em', opacity: 0.7, fontWeight: 600, marginLeft: '2px' }}>{tile.unit}</span>
-                  </div>
-                </div>
-
-                {/* CB */}
-                <div className="text-center p-1 rounded-2" style={{ background: sem.obCbBg }}>
-                  <div className="fw-bold text-uppercase" style={{ fontSize: '0.65rem', color: sem.label, letterSpacing: '0.5px' }}>
-                    CB
-                  </div>
-                  <div className="fw-black font-monospace" style={{ fontSize: '1.1rem', color: sem.obCb, fontVariantNumeric: 'tabular-nums' }}>
-                    {(tile.groupData.totalCB || 0).toLocaleString()}
-                    <span style={{ fontSize: '0.55em', opacity: 0.7, fontWeight: 600, marginLeft: '2px' }}>{tile.unit}</span>
-                  </div>
-                </div>
-              </div>
-
-            </div>
-          </div>
-        ))}
+                return (
+                  <tr key={item.name}>
+                    <td className="milma-td-name">{item.name}</td>
+                    <td className={`milma-td-num ${ob < 0 ? 'milma-val-negative' : ''}`}>
+                      {formatIN(ob, 1)}
+                    </td>
+                    <td className="milma-td-num">{formatIN(prod, 1)}</td>
+                    <td className="milma-td-num">{formatIN(sale, 1)}</td>
+                    <td className={`milma-td-num ${cb < 0 ? 'milma-val-negative' : ''}`}>
+                      {formatIN(cb, 1)}
+                    </td>
+                    <td className="milma-td-right">
+                      {cb < 0 ? (
+                        <span className="milma-badge-negative">Negative stock</span>
+                      ) : (cb === 0 || isNoActivity) ? (
+                        <span className="milma-badge-noactivity">No activity</span>
+                      ) : (
+                        <span className="milma-badge-instock">In stock</span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       </div>
-
     </div>
   );
 };

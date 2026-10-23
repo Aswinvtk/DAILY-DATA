@@ -7,24 +7,28 @@ import ReportEntry from './components/ReportEntry';
 const API_HOST = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
 const API_BASE = `http://${API_HOST}:5050/api`;
 
-const getYesterdayDateStr = () => {
-  const d = new Date();
-  d.setDate(d.getDate() - 1);
-  return d.toISOString().split('T')[0];
-};
-
 function App() {
-  const [selectedDate, setSelectedDate] = useState(getYesterdayDateStr);
+  const [selectedDate, setSelectedDate] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const urlDate = urlParams.get('date');
+      if (urlDate) return urlDate;
+    }
+    return localStorage.getItem('mpod_selected_date') || '2026-10-22';
+  });
   const [operationsData, setOperationsData] = useState(null);
-  const [theme, setTheme] = useState(() => localStorage.getItem('mpod_theme') || 'dark');
+  const [theme, setTheme] = useState(() => localStorage.getItem('mpod_theme') || 'light');
   const [refreshCountdown, setRefreshCountdown] = useState(30);
-  const [currentDateStr, setCurrentDateStr] = useState('');
-  const [liveTimeStr, setLiveTimeStr] = useState('');
-  const [lastUpdated, setLastUpdated] = useState('--:-- AM');
   const [loading, setLoading] = useState(true);
 
   // V2 Navigation View state: 'dashboard' or 'report_entry'
   const [view, setView] = useState('dashboard');
+
+  // Sync selectedDate to localStorage
+  const handleDateChange = (newDate) => {
+    setSelectedDate(newDate);
+    localStorage.setItem('mpod_selected_date', newDate);
+  };
 
   // Set theme attribute on HTML element
   useEffect(() => {
@@ -37,33 +41,6 @@ function App() {
     document.body.classList.remove('scrollable-body');
     window.scrollTo(0, 0);
   }, [view]);
-
-  // Live Clock effect - Exact day, date and ticking time
-  useEffect(() => {
-    const updateTime = () => {
-      const now = new Date();
-      let hours = now.getHours();
-      const minutes = String(now.getMinutes()).padStart(2, '0');
-      const seconds = String(now.getSeconds()).padStart(2, '0');
-      const ampm = hours >= 12 ? 'PM' : 'AM';
-      hours = hours % 12;
-      hours = hours ? hours : 12; // 0 should be 12
-      const formattedHours = String(hours).padStart(2, '0');
-
-      const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-      const dayName = weekdays[now.getDay()];
-      const dayNum = String(now.getDate()).padStart(2, '0');
-      const monthName = months[now.getMonth()];
-      const year = now.getFullYear();
-
-      setCurrentDateStr(`${dayName}, ${dayNum}-${monthName}-${year}`);
-      setLiveTimeStr(`${formattedHours}:${minutes}:${seconds} ${ampm}`);
-    };
-    updateTime();
-    const interval = setInterval(updateTime, 1000);
-    return () => clearInterval(interval);
-  }, []);
 
   // Fetch data function
   const fetchData = async (dateStr) => {
@@ -220,48 +197,35 @@ function App() {
   };
 
   return (
-    <div className="d-flex flex-column h-100">
+    <div className="milma-app-root">
       <Header
         selectedDate={selectedDate}
-        onDateChange={setSelectedDate}
+        onDateChange={handleDateChange}
         theme={theme}
         toggleTheme={toggleTheme}
-        lastUpdated={lastUpdated}
-        onManualRefresh={() => fetchData(selectedDate)}
         onOpenDataEntry={() => setView(view === 'dashboard' ? 'report_entry' : 'dashboard')}
-        currentDateStr={currentDateStr}
-        liveTimeStr={liveTimeStr}
+        view={view}
       />
 
       {view === 'dashboard' ? (
         // DASHBOARD VIEW
         <>
-          {/* Status Alert Bar if report is in Draft status */}
-          {isDraftStatus && (
-            <div className="bg-warning text-dark text-center py-1 px-3 fw-bold small d-flex align-items-center justify-content-center gap-2">
-              <span>⚠️ Draft Report for {selectedDate} — Data has not been finalized!</span>
-              <button onClick={() => setView('report_entry')} className="btn btn-sm btn-link py-0 fw-bold text-dark text-decoration-underline">
-                Edit & Submit Report
-              </button>
-            </div>
-          )}
-
-          <div className="dashboard-grid flex-grow-1">
+          <main className="milma-dashboard-main">
             {loading && !operationsData ? (
-              <div className="d-flex flex-grow-1 align-items-center justify-content-center">
+              <div className="milma-loading-spinner-wrap">
                 <div className="spinner-border text-primary" role="status">
                   <span className="visually-hidden">Loading Operations Data...</span>
                 </div>
               </div>
             ) : (
-              <>
-                <SummarySection
-                  data={operationsData}
-                  theme={theme}
-                />
-              </>
+              <SummarySection
+                data={operationsData}
+                selectedDate={selectedDate}
+                theme={theme}
+                onOpenDataEntry={() => setView('report_entry')}
+              />
             )}
-          </div>
+          </main>
 
           <Footer
             alerts={operationsData?.alerts}
@@ -273,6 +237,7 @@ function App() {
       ) : (
         // ADMINISTRATIVE DAILY REPORT ENTRY VIEW
         <ReportEntry
+          theme={theme}
           selectedDate={selectedDate}
           onBackToDashboard={() => { setView('dashboard'); fetchData(selectedDate); }}
           onSave={handleSaveData}
