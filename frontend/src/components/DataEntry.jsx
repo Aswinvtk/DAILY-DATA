@@ -17,7 +17,7 @@ const DataEntry = ({ isOpen, onClose, initialData, onSave }) => {
   const handleChange = (section, field, value, index = null, subfield = null) => {
     setFormData(prev => {
       const copy = { ...prev };
-      
+
       if (index !== null && subfield !== null) {
         // Nested array (e.g. products.variants)
         copy[section][index][subfield] = Number(value) || 0;
@@ -46,21 +46,21 @@ const DataEntry = ({ isOpen, onClose, initialData, onSave }) => {
   };
 
   return (
-    <div 
+    <div
       className="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center"
-      style={{ 
-        backgroundColor: 'rgba(0,0,0,0.7)', 
+      style={{
+        backgroundColor: 'rgba(0,0,0,0.7)',
         zIndex: 1050,
         backdropFilter: 'blur(4px)'
       }}
     >
-      <div 
+      <div
         className="card shadow-lg border-secondary"
-        style={{ 
-          width: '750px', 
-          maxWidth: '90%', 
-          maxHeight: '85vh', 
-          display: 'flex', 
+        style={{
+          width: '750px',
+          maxWidth: '90%',
+          maxHeight: '85vh',
+          display: 'flex',
           flexDirection: 'column',
           backgroundColor: 'var(--card-bg)',
           color: 'var(--text-color)'
@@ -77,21 +77,21 @@ const DataEntry = ({ isOpen, onClose, initialData, onSave }) => {
 
         {/* Tab Buttons */}
         <div className="bg-light bg-opacity-10 d-flex p-2 gap-2 border-bottom border-secondary">
-          <button 
+          <button
             type="button"
             className={`btn btn-sm ${activeFormTab === 'summary' ? 'btn-primary' : 'btn-outline-secondary'}`}
             onClick={() => setActiveFormTab('summary')}
           >
             Collections & Received
           </button>
-          <button 
+          <button
             type="button"
             className={`btn btn-sm ${activeFormTab === 'sales' ? 'btn-primary' : 'btn-outline-secondary'}`}
             onClick={() => setActiveFormTab('sales')}
           >
             Sales Breakdown
           </button>
-          <button 
+          <button
             type="button"
             className={`btn btn-sm ${activeFormTab === 'stocks' ? 'btn-primary' : 'btn-outline-secondary'}`}
             onClick={() => setActiveFormTab('stocks')}
@@ -103,7 +103,7 @@ const DataEntry = ({ isOpen, onClose, initialData, onSave }) => {
         {/* Form Body */}
         <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
           <div className="card-body overflow-auto py-4">
-            
+
             {/* TAB 1: SUMMARY DETAILS */}
             {activeFormTab === 'summary' && (
               <div className="row g-3">
@@ -280,15 +280,15 @@ const DataEntry = ({ isOpen, onClose, initialData, onSave }) => {
               Saving updates the database. The Live dashboard will pick up changes on refresh.
             </span>
             <div className="d-flex gap-2">
-              <button 
-                type="button" 
-                onClick={onClose} 
+              <button
+                type="button"
+                onClick={onClose}
                 className="btn btn-outline-light px-4"
               >
                 Cancel
               </button>
-              <button 
-                type="submit" 
+              <button
+                type="submit"
                 className="btn btn-warning px-4 d-flex align-items-center gap-1 fw-bold"
               >
                 <Save size={16} />
