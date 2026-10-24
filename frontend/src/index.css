@@ -1,5 +1,14 @@
 @import "bootstrap/dist/css/bootstrap.min.css";
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap");
+
+html {
+  font-size: max(14px, min(1.2vw, 2vh));
+  box-sizing: border-box;
+}
+
+*, *::before, *::after {
+  box-sizing: inherit;
+}
 
 /* ================================================================
    DESIGN SYSTEM — LIGHT THEME (Slate / Crisp White palette)
@@ -74,7 +83,7 @@
   --status-ok-text: #16a34a;
 
   --calendar-icon-filter: none;
-  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+  --font-sans: "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
   --transition-speed: 0.2s;
 }
 
@@ -242,7 +251,7 @@ body.scrollable-body {
 }
 
 .milma-logo {
-  height: 48px;
+  height: 2.8rem;
   width: auto;
   object-fit: contain;
   flex-shrink: 0;
@@ -1125,72 +1134,123 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 }
 
 /* ================================================================
-   MILMA MODERN DASHBOARD (MATCHING EXACT REFERENCE SCREENS)
+   MILMA MODERN DASHBOARD (PREMIUM TV VISIBILITY & EFFECTS)
    ================================================================ */
 
 :root {
-  --milma-bg: #f1f5f9;
+  /* --- LIGHT PALETTE (Default when light theme selected) --- */
+  --milma-bg: #eef2f8;
   --milma-card-bg: #ffffff;
-  --milma-card-border: #e2e8f0;
-  --milma-text-primary: #0f172a;
-  --milma-text-muted: #64748b;
+  --milma-card-border: #d4deec;
+  --milma-card-hover-border: #93c5fd;
+  --milma-card-shadow: 0 3px 12px rgba(15, 23, 42, 0.06);
+  --milma-card-hover-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
+
+  /* Text & Labels */
+  --milma-text-primary: #0c1529; /* Dark navy text & values */
+  --milma-text-secondary: #334155;
+  --milma-text-muted: #64748b;   /* Slate labels */
   --milma-text-subtle: #94a3b8;
-  --milma-blue-card-bg: #0f4bb4;
-  --milma-btn-primary: #0284c7;
-  --milma-border-radius: 14px;
-  --milma-alert-bg: #fee2e2;
-  --milma-alert-border: #fecaca;
-  --milma-alert-text: #b91c1c;
-  --milma-negative-badge-bg: #fee2e2;
-  --milma-negative-badge-text: #dc2626;
-  --milma-negative-val: #dc2626;
-  --milma-sold-none-bg: #fef3c7;
-  --milma-sold-none-text: #92400e;
+
+  /* Accents */
+  --milma-accent-gold: #9a6a14;  /* Darker gold for light bg */
+  --milma-accent-blue: #0b6aa8;  /* Darker blue for light bg */
+
+  /* Colour Meaning (Cards & Table) */
+  --milma-val-prod: #0b6aa8;     /* PRODUCTION: blue */
+  --milma-val-sale: #9a6a14;     /* SALE: gold */
+  --milma-val-neutral: #0c1529;  /* Opening / Closing: dark navy */
+  --milma-val-negative: #dc2626; /* Negative: soft red */
+
+  /* Royal blue card */
+  --milma-blue-card-bg: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
+
+  /* Status Badges */
+  --milma-status-ok-bg: rgba(22, 163, 74, 0.12);
+  --milma-status-ok-border: rgba(22, 163, 74, 0.25);
+  --milma-status-ok-text: #16a34a;
+
+  --milma-status-neg-bg: rgba(220, 38, 38, 0.12);
+  --milma-status-neg-border: rgba(220, 38, 38, 0.25);
+  --milma-status-neg-text: #dc2626;
+
+  --milma-status-none-bg: rgba(100, 116, 139, 0.12);
+  --milma-status-none-border: rgba(100, 116, 139, 0.2);
+  --milma-status-none-text: #64748b;
+
+  --milma-border-radius: 0.9rem;
   --milma-track-bg: #e2e8f0;
+
+  /* Header Pills & Buttons */
   --milma-pill-live-bg: #ffffff;
-  --milma-pill-live-text: #334155;
-  --milma-pill-fresh-bg: #fef3c7;
-  --milma-pill-fresh-border: #fde68a;
-  --milma-pill-fresh-text: #92400e;
+  --milma-pill-live-text: #0c1529;
   --milma-btn-theme-bg: #ffffff;
   --milma-btn-theme-border: #cbd5e1;
-  --milma-btn-theme-text: #0f172a;
+  --milma-btn-theme-text: #0c1529;
+  --milma-btn-primary: #0b6aa8;
 }
 
 [data-theme="dark"] {
-  --milma-bg: #070d19;
-  --milma-card-bg: #0e172e;
-  --milma-card-border: rgba(255, 255, 255, 0.08);
-  --milma-text-primary: #f8fafc;
-  --milma-text-muted: #94a3b8;
-  --milma-text-subtle: #64748b;
-  --milma-blue-card-bg: #1d4ed8;
-  --milma-btn-primary: #1d4ed8;
-  --milma-alert-bg: #381619;
-  --milma-alert-border: #5a1e24;
-  --milma-alert-text: #f87171;
-  --milma-negative-badge-bg: #381419;
-  --milma-negative-badge-text: #f87171;
-  --milma-negative-val: #f87171;
-  --milma-sold-none-bg: #382a10;
-  --milma-sold-none-text: #fde047;
-  --milma-track-bg: #17233f;
-  --milma-pill-live-bg: #17233f;
-  --milma-pill-live-text: #cbd5e1;
-  --milma-pill-fresh-bg: #382a10;
-  --milma-pill-fresh-border: #78350f;
-  --milma-pill-fresh-text: #fde047;
-  --milma-btn-theme-bg: #17233f;
-  --milma-btn-theme-border: rgba(255, 255, 255, 0.12);
-  --milma-btn-theme-text: #f8fafc;
+  /* --- DARK PALETTE (Default theme) --- */
+  --milma-bg: radial-gradient(ellipse at 50% 15%, #0d1730 0%, #080e1c 100%);
+  --milma-card-bg: linear-gradient(145deg, #101b33 0%, #0c1529 100%);
+  --milma-card-border: #223150;
+  --milma-card-hover-border: rgba(125, 211, 252, 0.5);
+  --milma-card-shadow: 0 4px 20px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  --milma-card-hover-shadow: 0 10px 28px rgba(0, 0, 0, 0.6), 0 0 16px rgba(125, 211, 252, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+
+  /* Text & Labels */
+  --milma-text-primary: #f3f6fc;   /* Near-white values & main headings */
+  --milma-text-secondary: #c9d4ea; /* Secondary text */
+  --milma-text-muted: #8d9dbd;     /* Muted slate-blue labels */
+  --milma-text-subtle: #6b7c9f;
+
+  /* Accents */
+  --milma-accent-gold: #e9c46a;    /* Gold */
+  --milma-accent-blue: #7dd3fc;    /* Sky-blue */
+
+  /* Colour Meaning (Cards & Table) */
+  --milma-val-prod: #7dd3fc;       /* PRODUCTION: sky-blue */
+  --milma-val-sale: #e9c46a;       /* SALE: gold */
+  --milma-val-neutral: #f3f6fc;    /* Opening / Closing: white */
+  --milma-val-negative: #f87171;   /* Negative: soft red */
+
+  /* Royal blue card */
+  --milma-blue-card-bg: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
+
+  /* Status Badges */
+  --milma-status-ok-bg: rgba(74, 222, 128, 0.15);
+  --milma-status-ok-border: rgba(74, 222, 128, 0.3);
+  --milma-status-ok-text: #4ade80;
+
+  --milma-status-neg-bg: rgba(248, 113, 113, 0.15);
+  --milma-status-neg-border: rgba(248, 113, 113, 0.3);
+  --milma-status-neg-text: #f87171;
+
+  --milma-status-none-bg: rgba(141, 157, 189, 0.15);
+  --milma-status-none-border: rgba(141, 157, 189, 0.25);
+  --milma-status-none-text: #8d9dbd;
+
+  --milma-border-radius: 0.9rem;
+  --milma-track-bg: #15223e;
+
+  /* Header Pills & Buttons */
+  --milma-pill-live-bg: rgba(16, 27, 51, 0.85);
+  --milma-pill-live-text: #f3f6fc;
+  --milma-btn-theme-bg: rgba(16, 27, 51, 0.85);
+  --milma-btn-theme-border: #223150;
+  --milma-btn-theme-text: #f3f6fc;
+  --milma-btn-primary: #2563eb;
 }
 
 body {
-  background-color: var(--milma-bg) !important;
+  background: var(--milma-bg) !important;
   color: var(--milma-text-primary) !important;
+  overflow-x: hidden;
   overflow-y: auto !important;
   height: auto !important;
   min-height: 100vh;
+  font-family: var(--font-sans);
 }
 
 #root {
@@ -1198,14 +1258,18 @@ body {
   height: auto !important;
   display: flex;
   flex-direction: column;
+  width: 100%;
+  max-width: none;
 }
 
 .milma-app-root {
   min-height: 100vh;
+  width: 100%;
+  max-width: none;
   display: flex;
   flex-direction: column;
-  background-color: var(--milma-bg);
-  padding: 24px 32px 72px 32px;
+  background: var(--milma-bg);
+  padding: 0.35rem 1rem 3.3rem 1rem;
   box-sizing: border-box;
   font-family: var(--font-sans);
 }
@@ -1214,24 +1278,132 @@ body {
   display: flex;
   flex-direction: column;
   width: 100%;
-  padding-bottom: 24px;
+  max-width: none;
+  padding-bottom: 0;
 }
 
-/* Header */
+.milma-dashboard-content {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: none;
+}
+
+/* ================================================================
+   ENTRANCE & INTERACTIVE ANIMATIONS
+   ================================================================ */
+
+/* Card Fade up and slide in ~14px on load */
+@keyframes milma-card-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Table rows fade in one by one (~0.06s apart) */
+@keyframes milma-row-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Staggered card entrance delays */
+.milma-stagger-1 { animation: milma-card-in 0.45s cubic-bezier(0.16, 1, 0.3, 1) 0s both; }
+.milma-stagger-2 { animation: milma-card-in 0.45s cubic-bezier(0.16, 1, 0.3, 1) 0.07s both; }
+.milma-stagger-3 { animation: milma-card-in 0.45s cubic-bezier(0.16, 1, 0.3, 1) 0.14s both; }
+.milma-stagger-4 { animation: milma-card-in 0.45s cubic-bezier(0.16, 1, 0.3, 1) 0.21s both; }
+.milma-stagger-5 { animation: milma-card-in 0.45s cubic-bezier(0.16, 1, 0.3, 1) 0.28s both; }
+.milma-stagger-6 { animation: milma-card-in 0.45s cubic-bezier(0.16, 1, 0.3, 1) 0.35s both; }
+.milma-stagger-7 { animation: milma-card-in 0.45s cubic-bezier(0.16, 1, 0.3, 1) 0.42s both; }
+.milma-stagger-8 { animation: milma-card-in 0.45s cubic-bezier(0.16, 1, 0.3, 1) 0.49s both; }
+.milma-stagger-9 { animation: milma-card-in 0.45s cubic-bezier(0.16, 1, 0.3, 1) 0.56s both; }
+
+.milma-table-row-fade {
+  animation: milma-row-in 0.38s ease-out both;
+}
+
+/* Card lift 3px and brighten border on hover */
+.milma-kpi-card,
+.milma-card {
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease, border-color 0.25s ease;
+}
+
+.milma-kpi-card:hover,
+.milma-card:hover {
+  transform: translateY(-3px);
+  border-color: var(--milma-card-hover-border);
+  box-shadow: var(--milma-card-hover-shadow);
+}
+
+/* Button brighten and lift slightly on hover */
+.milma-btn-theme-toggle,
+.milma-btn-data-entry,
+.milma-ticker-manage-btn,
+.milma-pill-report-date,
+.milma-empty-entry-btn {
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), filter 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.milma-btn-theme-toggle:hover,
+.milma-btn-data-entry:hover,
+.milma-ticker-manage-btn:hover,
+.milma-pill-report-date:hover,
+.milma-empty-entry-btn:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.15);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* Header animation */
+.milma-dashboard-header {
+  animation: milma-card-in 0.4s ease-out both;
+}
+
+/* Respect prefers-reduced-motion: disable all animation and transitions */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
+  }
+}
+
+/* ================================================================
+   HEADER
+   ================================================================ */
 .milma-dashboard-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 20px;
+  margin-bottom: 0.35rem;
   flex-wrap: wrap;
-  gap: 14px;
+  gap: 0.65rem;
+  width: 100%;
+  max-width: none;
 }
 
 .milma-header-left {
   display: flex;
   flex-direction: row;
   align-items: center;
-  gap: 14px;
+  gap: 0.65rem;
+}
+
+.milma-logo {
+  height: 2.8rem;
+  width: auto;
+  object-fit: contain;
 }
 
 .milma-header-titles {
@@ -1240,25 +1412,26 @@ body {
 }
 
 .milma-header-title {
-  font-size: 1.55rem;
+  font-size: 2rem;
   font-weight: 800;
   color: var(--milma-text-primary);
   margin: 0;
-  line-height: 1.15;
-  letter-spacing: -0.3px;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
 }
 
 .milma-header-subtitle {
-  font-size: 0.90rem;
+  font-size: 1.05rem;
   color: var(--milma-text-muted);
-  margin: 3px 0 0 0;
-  font-weight: 500;
+  margin: 0.1rem 0 0 0;
+  font-weight: 600;
+  letter-spacing: 0.01em;
 }
 
 .milma-header-right {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 0.55rem;
   flex-wrap: wrap;
 }
 
@@ -1266,192 +1439,123 @@ body {
   background: var(--milma-pill-live-bg);
   color: var(--milma-pill-live-text);
   border: 1px solid var(--milma-card-border);
-  padding: 6px 16px;
+  padding: 0.35rem 0.95rem;
   border-radius: 9999px;
-  font-size: 0.85rem;
-  font-weight: 500;
+  font-size: 1.15rem;
+  font-weight: 800;
   white-space: nowrap;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 }
 
 .milma-pill-live-time {
   background: var(--milma-pill-live-bg);
   color: var(--milma-pill-live-text);
   border: 1px solid var(--milma-card-border);
-  padding: 6px 14px;
+  padding: 0.35rem 0.95rem;
   border-radius: 9999px;
-  font-size: 0.85rem;
-  font-weight: 600;
+  font-size: 1.15rem;
+  font-weight: 800;
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  transition: background-color var(--transition-speed), border-color var(--transition-speed);
+  gap: 0.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 }
 
-.milma-live-time-icon {
-  color: var(--milma-text-muted);
+/* Small green dot pulses next to live clock */
+.milma-live-beacon {
+  width: 0.55rem;
+  height: 0.55rem;
+  background-color: #22c55e;
+  border-radius: 50%;
+  display: inline-block;
+  box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.75);
+  animation: milma-pulse-beacon 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
   flex-shrink: 0;
 }
 
+@keyframes milma-pulse-beacon {
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.75); }
+  70% { transform: scale(1.1); box-shadow: 0 0 0 7px rgba(34, 197, 94, 0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+}
+
+.milma-live-time-icon {
+  width: 1.15rem !important;
+  height: 1.15rem !important;
+  color: var(--milma-text-muted);
+}
+
 .milma-pill-report-date {
-  background: var(--milma-card-bg);
-  color: var(--milma-text-primary);
+  background: var(--milma-pill-live-bg);
+  color: var(--milma-pill-live-text);
   border: 1px solid var(--milma-card-border);
-  padding: 6px 14px;
+  padding: 0.35rem 0.95rem;
   border-radius: 9999px;
-  font-size: 0.85rem;
-  font-weight: 500;
+  font-size: 1.15rem;
+  font-weight: 800;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  white-space: nowrap;
+  gap: 0.55rem;
   cursor: pointer;
-  user-select: none;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 }
 
 .milma-report-date-label {
   color: var(--milma-text-muted);
-  font-weight: 500;
+  font-weight: 700;
+  font-size: 1.05rem;
 }
 
 .milma-report-date-val {
-  font-weight: 700;
   color: var(--milma-text-primary);
-  font-variant-numeric: tabular-nums;
+  font-weight: 800;
 }
 
 .milma-report-date-icon {
+  width: 1.15rem !important;
+  height: 1.15rem !important;
   color: var(--milma-text-muted);
-  flex-shrink: 0;
-}
-
-.milma-pill-freshness {
-  background: var(--milma-pill-fresh-bg);
-  border: 1px solid var(--milma-pill-fresh-border);
-  color: var(--milma-pill-fresh-text);
-  padding: 6px 16px;
-  border-radius: 9999px;
-  font-size: 0.85rem;
-  font-weight: 500;
-  position: relative;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  white-space: nowrap;
-  user-select: none;
-}
-
-.milma-pill-freshness:hover {
-  filter: brightness(0.97);
 }
 
 .milma-hidden-date-input {
   position: absolute;
-  inset: 0;
+  top: 0;
+  left: 0;
   width: 100%;
   height: 100%;
   opacity: 0;
   cursor: pointer;
-  z-index: 10;
-}
-
-.milma-pill-report-date:hover {
-  filter: brightness(0.96);
-}
-
-[data-theme="dark"] .milma-pill-report-date:hover {
-  filter: brightness(1.15);
+  z-index: 2;
 }
 
 .milma-btn-theme-toggle {
   background: var(--milma-btn-theme-bg);
-  border: 1px solid var(--milma-btn-theme-border);
   color: var(--milma-btn-theme-text);
-  padding: 6px 16px;
-  border-radius: 8px;
-  font-size: 0.85rem;
-  font-weight: 600;
+  border: 1px solid var(--milma-btn-theme-border);
+  padding: 0.35rem 0.95rem;
+  border-radius: 9999px;
+  font-size: 1.15rem;
+  font-weight: 800;
   cursor: pointer;
-  transition: opacity 0.15s ease;
   white-space: nowrap;
-}
-
-.milma-btn-theme-toggle:hover {
-  opacity: 0.85;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 }
 
 .milma-btn-data-entry {
   background: var(--milma-btn-primary);
+  color: #ffffff !important;
   border: none;
-  color: #ffffff;
-  padding: 6px 20px;
-  border-radius: 8px;
-  font-size: 0.85rem;
-  font-weight: 600;
+  padding: 0.35rem 1.05rem;
+  border-radius: 9999px;
+  font-size: 1.15rem;
+  font-weight: 800;
   cursor: pointer;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
-  transition: opacity 0.15s ease;
   white-space: nowrap;
-}
-
-.milma-btn-data-entry:hover {
-  opacity: 0.9;
-}
-
-/* Alert Warning Banner */
-.milma-alert-banner {
-  background: var(--milma-alert-bg);
-  border: 1px solid var(--milma-alert-border);
-  color: var(--milma-alert-text);
-  border-radius: 10px;
-  padding: 12px 18px;
-  font-size: 0.88rem;
-  font-weight: 500;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 20px;
-  line-height: 1.4;
-}
-
-.milma-alert-icon {
-  font-size: 1.1rem;
-}
-
-.milma-alert-link {
-  background: none;
-  border: none;
-  padding: 0;
-  color: inherit;
-  font-weight: 700;
-  text-decoration: underline;
-  cursor: pointer;
-}
-
-/* Draft alert bar */
-.milma-draft-alert {
-  background: #fef3c7;
-  border: 1px solid #fde68a;
-  color: #92400e;
-  border-radius: 8px;
-  padding: 8px 16px;
-  font-size: 0.85rem;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  margin-bottom: 16px;
-}
-
-.milma-draft-edit-btn {
-  background: none;
-  border: none;
-  color: #92400e;
-  font-weight: 700;
-  text-decoration: underline;
-  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.35);
 }
 
 /* ========================================================= */
@@ -1460,75 +1564,115 @@ body {
 .milma-kpi-grid-4 {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 16px;
-  margin-bottom: 20px;
+  gap: 0.6rem;
+  margin-bottom: 0.35rem;
+  width: 100%;
+  max-width: none;
 }
 
 .milma-kpi-card {
   background: var(--milma-card-bg);
   border: 1px solid var(--milma-card-border);
   border-radius: var(--milma-border-radius);
-  padding: 20px 22px;
+  padding: 0.45rem 0.75rem;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
-  min-height: 140px;
+  box-shadow: var(--milma-card-shadow);
+  min-height: auto;
+  position: relative;
+  overflow: hidden;
 }
 
+/* "Total milk collected" card: royal-blue gradient with white text & light sweep */
 .milma-kpi-blue {
   background: var(--milma-blue-card-bg) !important;
-  border: none !important;
+  border: 1px solid rgba(255, 255, 255, 0.18) !important;
   color: #ffffff !important;
+  box-shadow: 0 6px 20px -2px rgba(30, 58, 138, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.25) !important;
+  position: relative;
+  overflow: hidden;
+}
+
+.milma-kpi-blue:hover {
+  box-shadow: 0 10px 28px -2px rgba(37, 99, 235, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.35) !important;
+  border-color: rgba(255, 255, 255, 0.35) !important;
+}
+
+/* Slow light sweep runs across "Total milk collected" card every few seconds */
+.milma-kpi-blue::after {
+  content: '';
+  position: absolute;
+  top: -60%;
+  left: -80%;
+  width: 55%;
+  height: 220%;
+  background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.22) 50%, transparent 100%);
+  transform: rotate(25deg);
+  pointer-events: none;
+  animation: milma-light-sweep 5.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+@keyframes milma-light-sweep {
+  0% { left: -80%; }
+  35%, 100% { left: 150%; }
 }
 
 .milma-kpi-title {
-  font-size: 0.85rem;
-  font-weight: 500;
+  font-size: 1.05rem;
+  font-weight: 700;
   color: var(--milma-text-muted);
-  margin-bottom: 8px;
+  margin-bottom: 0.15rem;
+  letter-spacing: -0.01em;
 }
 
 .milma-kpi-blue .milma-kpi-title {
-  color: rgba(255, 255, 255, 0.92) !important;
+  color: rgba(255, 255, 255, 0.95) !important;
 }
 
 .milma-kpi-value {
-  font-size: 2rem;
+  font-size: 2.7rem;
   font-weight: 800;
   color: var(--milma-text-primary);
-  letter-spacing: -0.5px;
-  line-height: 1.15;
-  margin-bottom: 6px;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  margin-bottom: 0.15rem;
   font-variant-numeric: tabular-nums;
 }
 
 .milma-kpi-blue .milma-kpi-value {
   color: #ffffff !important;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
 }
 
 .milma-kpi-unit {
-  font-size: 0.70em;
+  font-size: 1.1rem;
   font-weight: 700;
-  margin-left: 2px;
+  margin-left: 0.25rem;
+  color: var(--milma-text-subtle);
+}
+
+.milma-kpi-blue .milma-kpi-unit {
+  color: rgba(255, 255, 255, 0.85) !important;
 }
 
 .milma-kpi-subtext {
-  font-size: 0.78rem;
+  font-size: 1.05rem;
   color: var(--milma-text-muted);
   margin-top: auto;
+  font-weight: 600;
 }
 
 .milma-kpi-blue .milma-kpi-subtext {
-  color: rgba(255, 255, 255, 0.85) !important;
+  color: rgba(255, 255, 255, 0.9) !important;
 }
 
 /* Outside Purchase & Stock Out Lists inside KPI cards */
 .milma-card-list {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 0.15rem;
   margin-top: auto;
-  padding-top: 8px;
+  padding-top: 0.2rem;
   border-top: 1px dashed var(--milma-card-border);
 }
 
@@ -1536,27 +1680,30 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: 0.80rem;
+  font-size: 1.1rem;
   color: var(--milma-text-muted);
+  line-height: 1.2;
 }
 
 .milma-list-label {
-  font-weight: 500;
+  font-size: 1.1rem;
+  font-weight: 600;
   color: var(--milma-text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 60%;
+  max-width: 65%;
 }
 
 .milma-list-val {
-  font-weight: 600;
+  font-size: 1.1rem;
+  font-weight: 700;
   color: var(--milma-text-primary);
   font-variant-numeric: tabular-nums;
 }
 
 .milma-card-list-empty {
-  font-size: 0.78rem;
+  font-size: 1.05rem;
   color: var(--milma-text-muted);
   font-style: italic;
 }
@@ -1567,142 +1714,244 @@ body {
 .milma-row2-grid-4 {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 16px;
-  margin-bottom: 20px;
+  gap: 0.6rem;
+  margin-bottom: 0.35rem;
   align-items: stretch;
+  width: 100%;
+  max-width: none;
 }
 
 .milma-card {
   background: var(--milma-card-bg);
   border: 1px solid var(--milma-card-border);
   border-radius: var(--milma-border-radius);
-  padding: 20px 22px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+  padding: 0.45rem 0.75rem;
+  box-shadow: var(--milma-card-shadow);
   display: flex;
   flex-direction: column;
+  position: relative;
+  overflow: hidden;
 }
 
 .milma-card-title {
-  font-size: 0.95rem;
-  font-weight: 700;
+  font-size: 1.3rem;
+  font-weight: 800;
   color: var(--milma-text-primary);
-  margin: 0 0 14px 0;
-  letter-spacing: -0.2px;
+  margin: 0 0 0.25rem 0;
+  letter-spacing: -0.02em;
 }
 
-/* Card 1: Donut Chart */
+/* Card titles of Milk / Curd / Ghee details have a coloured underline */
+.milma-title-underline {
+  position: relative;
+  padding-bottom: 0.28rem;
+  display: inline-block;
+}
+
+.milma-title-underline::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 2.2rem;
+  height: 3px;
+  border-radius: 2px;
+}
+
+.milma-title-underline-milk::after {
+  background: var(--milma-accent-blue);
+}
+
+.milma-title-underline-curd::after {
+  background: #10b981;
+}
+
+.milma-title-underline-ghee::after {
+  background: var(--milma-accent-gold);
+}
+
+/* --------------------------------------------------------- */
+/* Card 1: Pie / Donut Card ("Where the milk came from")     */
+/* --------------------------------------------------------- */
 .milma-donut-card {
   display: flex;
   flex-direction: column;
 }
 
-.milma-donut-wrapper {
+/* Layout: Pie on LEFT, Legend on RIGHT */
+.milma-donut-layout {
   display: flex;
-  justify-content: center;
   align-items: center;
-  padding: 8px 0;
+  justify-content: space-between;
+  gap: 0.8rem;
+  flex: 1;
+  padding: 0.1rem 0;
+}
+
+.milma-donut-left {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 44%;
 }
 
 .milma-donut-svg {
+  width: 5.8rem;
+  height: 5.8rem;
   overflow: visible;
+  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.3));
 }
 
 .milma-donut-bg-track {
   stroke: var(--milma-track-bg);
 }
 
-.milma-donut-val {
-  font-size: 1.15rem;
+/* Pie Animation: segments draw one after the other (~1.1s each, second starts ~0.5s later) */
+@keyframes milma-draw-wyd {
+  from {
+    stroke-dashoffset: var(--arc-len);
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes milma-draw-mdy {
+  from {
+    stroke-dashoffset: calc(var(--offset-start) + var(--arc-len));
+  }
+  to {
+    stroke-dashoffset: var(--offset-start);
+  }
+}
+
+.milma-arc-wyd {
+  stroke: var(--milma-accent-blue);
+  animation: milma-draw-wyd 1.1s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.milma-arc-mdy {
+  stroke: var(--milma-accent-gold);
+  animation: milma-draw-mdy 1.1s cubic-bezier(0.16, 1, 0.3, 1) 0.5s both;
+}
+
+/* Total amount BELOW the pie */
+.milma-donut-total-box {
+  text-align: center;
+  margin-top: 0.15rem;
+}
+
+.milma-donut-total-val {
+  font-size: 1.35rem;
   font-weight: 800;
-  fill: var(--milma-text-primary);
-  letter-spacing: -0.3px;
+  color: var(--milma-text-primary);
+  letter-spacing: -0.02em;
   font-variant-numeric: tabular-nums;
+  line-height: 1;
 }
 
-.milma-donut-lbl {
-  font-size: 0.62rem;
+.milma-donut-total-unit {
+  font-size: 0.95rem;
   font-weight: 700;
-  fill: var(--milma-text-muted);
-  letter-spacing: 1.2px;
+  color: var(--milma-text-subtle);
 }
 
-.milma-donut-legend {
+.milma-donut-total-lbl {
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: var(--milma-text-muted);
+  letter-spacing: 0.08em;
+  margin-top: 0.05rem;
+}
+
+/* Right side legend: vertically stacked */
+.milma-donut-right {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  margin-top: auto;
-  padding-top: 14px;
+  justify-content: center;
+  gap: 0.55rem;
+  flex: 1;
 }
 
-.milma-legend-row {
+.milma-pie-legend-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.milma-pie-legend-name {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  font-size: 0.82rem;
+  gap: 0.4rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--milma-text-muted);
+  line-height: 1.2;
 }
 
-.milma-legend-label {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-weight: 500;
-  color: var(--milma-text-primary);
-}
-
-.milma-color-dot {
-  width: 9px;
-  height: 9px;
-  border-radius: 2px;
+.milma-pie-sq {
+  width: 0.65rem;
+  height: 0.65rem;
+  border-radius: 0.18rem;
   display: inline-block;
   flex-shrink: 0;
+  box-shadow: 0 0 6px rgba(0, 0, 0, 0.25);
 }
 
-.milma-dot-wyd {
-  background: #0b57d0;
+.milma-sq-wyd {
+  background: var(--milma-accent-blue);
 }
 
-.milma-dot-mdy {
-  background: #38bdf8;
+.milma-sq-mdy {
+  background: var(--milma-accent-gold);
 }
 
-.milma-legend-val {
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
+.milma-pie-legend-qty {
+  font-size: 1.22rem;
+  font-weight: 800;
   color: var(--milma-text-primary);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+  padding-left: 1.05rem;
 }
 
-/* Cards 2, 3, 4: Milk, Curd, Ghee Details */
+/* --------------------------------------------------------- */
+/* Cards 2, 3, 4: Milk, Curd, Ghee Details                   */
+/* --------------------------------------------------------- */
 .milma-detail-card {
   display: flex;
   flex-direction: column;
 }
 
 .milma-detail-metric {
-  margin-bottom: 12px;
+  margin-bottom: 0.25rem;
 }
 
 .milma-detail-metric-label {
-  font-size: 0.80rem;
-  font-weight: 500;
+  font-size: 1.05rem;
+  font-weight: 700;
   color: var(--milma-text-muted);
   display: block;
-  margin-bottom: 2px;
+  margin-bottom: 0.05rem;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
 }
 
 .milma-metric-huge {
-  font-size: 34px;
+  font-size: 2.15rem;
   font-weight: 800;
-  line-height: 1.1;
-  letter-spacing: -0.6px;
-  color: var(--milma-text-primary);
+  line-height: 1;
+  letter-spacing: -0.03em;
   font-variant-numeric: tabular-nums;
 }
 
 .milma-metric-unit {
-  font-size: 0.55em;
-  font-weight: 600;
-  color: var(--milma-text-muted);
-  margin-left: 2px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--milma-text-subtle);
+  margin-left: 0.25rem;
 }
 
 .milma-detail-bottom {
@@ -1710,7 +1959,7 @@ body {
   justify-content: space-between;
   align-items: flex-end;
   margin-top: auto;
-  padding-top: 14px;
+  padding-top: 0.25rem;
   border-top: 1px solid var(--milma-card-border);
 }
 
@@ -1720,72 +1969,79 @@ body {
 }
 
 .milma-balance-lbl {
-  font-size: 0.72rem;
+  font-size: 1rem;
   color: var(--milma-text-muted);
-  font-weight: 500;
-  margin-bottom: 2px;
+  font-weight: 600;
+  margin-bottom: 0.05rem;
+  line-height: 1.2;
 }
 
 .milma-balance-num {
-  font-weight: 700;
-  font-size: 0.85rem;
-  color: var(--milma-text-primary);
+  font-weight: 800;
+  font-size: 1.3rem;
   font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+
+/* --------------------------------------------------------- */
+/* SEMANTIC COLOR MEANING ACROSS CARDS AND TABLE             */
+/* --------------------------------------------------------- */
+.milma-val-prod {
+  color: var(--milma-val-prod) !important;
+}
+
+.milma-val-sale {
+  color: var(--milma-val-sale) !important;
+}
+
+.milma-val-neutral {
+  color: var(--milma-val-neutral) !important;
 }
 
 .milma-val-negative {
-  color: var(--milma-negative-val) !important;
+  color: var(--milma-val-negative) !important;
 }
 
-/* ========================================================= */
-/* Status Badges                                             */
-/* ========================================================= */
+/* --------------------------------------------------------- */
+/* Status Badges (Soft pill tags)                            */
+/* --------------------------------------------------------- */
 .milma-badge-instock {
   display: inline-block;
-  background: #dcfce7;
-  color: #15803d;
-  padding: 3px 10px;
+  background: var(--milma-status-ok-bg);
+  color: var(--milma-status-ok-text);
+  border: 1px solid var(--milma-status-ok-border);
+  padding: 0.15rem 0.55rem;
   border-radius: 9999px;
-  font-size: 0.74rem;
-  font-weight: 600;
+  font-size: 0.95rem;
+  font-weight: 700;
   white-space: nowrap;
-}
-
-[data-theme="dark"] .milma-badge-instock {
-  background: rgba(22, 163, 74, 0.2);
-  color: #4ade80;
-}
-
-.milma-badge-noactivity {
-  display: inline-block;
-  background: #f1f5f9;
-  color: #64748b;
-  padding: 3px 10px;
-  border-radius: 9999px;
-  font-size: 0.74rem;
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-[data-theme="dark"] .milma-badge-noactivity {
-  background: #1e293b;
-  color: #94a3b8;
+  line-height: 1.2;
 }
 
 .milma-badge-negative {
   display: inline-block;
-  background: #fee2e2;
-  color: #dc2626;
-  padding: 3px 10px;
+  background: var(--milma-status-neg-bg);
+  color: var(--milma-status-neg-text);
+  border: 1px solid var(--milma-status-neg-border);
+  padding: 0.15rem 0.55rem;
   border-radius: 9999px;
-  font-size: 0.74rem;
-  font-weight: 600;
+  font-size: 0.95rem;
+  font-weight: 700;
   white-space: nowrap;
+  line-height: 1.2;
 }
 
-[data-theme="dark"] .milma-badge-negative {
-  background: rgba(220, 38, 38, 0.2);
-  color: #f87171;
+.milma-badge-noactivity {
+  display: inline-block;
+  background: var(--milma-status-none-bg);
+  color: var(--milma-status-none-text);
+  border: 1px solid var(--milma-status-none-border);
+  padding: 0.15rem 0.55rem;
+  border-radius: 9999px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  white-space: nowrap;
+  line-height: 1.2;
 }
 
 /* ========================================================= */
@@ -1793,6 +2049,7 @@ body {
 /* ========================================================= */
 .milma-card-table {
   width: 100%;
+  max-width: none;
 }
 
 .milma-table-container {
@@ -1802,14 +2059,17 @@ body {
 .milma-products-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.88rem;
+  line-height: 1.15;
 }
 
+/* Uppercase small grey headers */
 .milma-products-table thead th {
-  padding: 10px 14px;
+  padding: 0.2rem 0.5rem;
   color: var(--milma-text-muted);
-  font-weight: 500;
-  font-size: 0.82rem;
+  font-weight: 700;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
   border-bottom: 1px solid var(--milma-card-border);
 }
 
@@ -1823,6 +2083,15 @@ body {
 
 .milma-products-table tbody tr {
   border-bottom: 1px solid var(--milma-card-border);
+  transition: background-color 0.2s ease;
+}
+
+.milma-products-table tbody tr:hover {
+  background-color: rgba(255, 255, 255, 0.04);
+}
+
+[data-theme="light"] .milma-products-table tbody tr:hover {
+  background-color: rgba(11, 106, 168, 0.05);
 }
 
 .milma-products-table tbody tr:last-child {
@@ -1830,19 +2099,21 @@ body {
 }
 
 .milma-products-table tbody td {
-  padding: 12px 14px;
+  padding: 0.2rem 0.5rem;
 }
 
 .milma-td-name {
+  font-size: 1.25rem;
   font-weight: 700;
   color: var(--milma-text-primary);
+  letter-spacing: -0.01em;
 }
 
 .milma-td-num {
+  font-size: 1.25rem;
   text-align: right;
   font-variant-numeric: tabular-nums;
-  font-weight: 500;
-  color: var(--milma-text-primary);
+  font-weight: 700;
 }
 
 .milma-td-right {
@@ -1850,65 +2121,60 @@ body {
 }
 
 /* ========================================================= */
-/* Empty-State Card per Requirement 1                        */
+/* Empty-State Card                                          */
 /* ========================================================= */
 .milma-empty-container {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 380px;
+  min-height: 20rem;
   width: 100%;
-  padding: 40px 20px;
+  padding: 2rem 1rem;
 }
 
 .milma-empty-card {
   background: var(--milma-card-bg);
   border: 1px solid var(--milma-card-border);
-  border-radius: 14px;
-  padding: 48px 36px;
-  max-width: 580px;
+  border-radius: var(--milma-border-radius);
+  padding: 2.5rem 2rem;
+  max-width: 32rem;
   width: 100%;
   text-align: center;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
   display: flex;
   flex-direction: column;
   align-items: center;
 }
 
 .milma-empty-icon-circle {
-  width: 64px;
-  height: 64px;
+  width: 4rem;
+  height: 4rem;
   border-radius: 50%;
   background: var(--milma-track-bg);
   color: var(--milma-text-muted);
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 20px;
+  margin-bottom: 1.2rem;
 }
 
 .milma-empty-text {
-  font-size: 1.15rem;
-  font-weight: 600;
+  font-size: 1.3rem;
+  font-weight: 700;
   color: var(--milma-text-primary);
-  line-height: 1.5;
-  margin-bottom: 24px;
+  line-height: 1.4;
+  margin-bottom: 1.5rem;
 }
 
 .milma-empty-entry-btn {
   background: var(--milma-btn-primary);
   color: #ffffff;
   border: none;
-  padding: 10px 24px;
-  border-radius: 8px;
-  font-size: 0.9rem;
-  font-weight: 600;
+  padding: 0.6rem 1.5rem;
+  border-radius: 0.5rem;
+  font-size: 1.05rem;
+  font-weight: 700;
   cursor: pointer;
-  transition: opacity 0.15s ease;
-}
-
-.milma-empty-entry-btn:hover {
-  opacity: 0.9;
 }
 
 /* Responsive adjustments */
@@ -1930,53 +2196,69 @@ body {
   }
 }
 
-/* Bottom Scrolling Alerts Ticker */
+/* ========================================================= */
+/* Bottom Scrolling Alerts Ticker with edge fade             */
+/* ========================================================= */
 .milma-ticker-footer {
   position: fixed;
   bottom: 0;
   left: 0;
   right: 0;
-  height: 40px;
+  height: 3.2rem;
   background: var(--milma-card-bg);
+  backdrop-filter: blur(12px);
   border-top: 1px solid var(--milma-card-border);
   display: flex;
   align-items: center;
-  padding: 0 16px;
+  padding: 0 1.25rem;
   z-index: 1000;
-  box-shadow: 0 -1px 3px rgba(0, 0, 0, 0.02);
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.25);
+}
+
+[data-theme="dark"] .milma-ticker-footer {
+  background: rgba(12, 21, 41, 0.95);
+  border-top: 1px solid #223150;
+  box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.6);
 }
 
 .milma-ticker-badge {
-  background: #0f172a;
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
   color: #ffffff;
   font-weight: 800;
-  font-size: 0.74rem;
+  font-size: 1.1rem;
   letter-spacing: 0.5px;
-  border-radius: 6px;
-  padding: 4px 12px;
+  border-radius: 0.45rem;
+  padding: 0.35rem 0.85rem;
   white-space: nowrap;
   flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 [data-theme="dark"] .milma-ticker-badge {
-  background: #0b1120;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: linear-gradient(135deg, #1e3a8a 0%, #172554 100%);
+  border: 1px solid rgba(125, 211, 252, 0.3);
+  color: #ffffff;
+  box-shadow: 0 0 12px rgba(125, 211, 252, 0.25);
 }
 
+/* Ticker fades out at both edges using CSS mask */
 .milma-ticker-wrap {
   flex: 1;
   overflow: hidden;
   height: 100%;
   display: flex;
   align-items: center;
-  margin: 0 20px;
+  margin: 0 1.5rem;
+  mask-image: linear-gradient(to right, transparent 0%, black 2.5rem, black calc(100% - 2.5rem), transparent 100%);
+  -webkit-mask-image: linear-gradient(to right, transparent 0%, black 2.5rem, black calc(100% - 2.5rem), transparent 100%);
 }
 
 .milma-ticker-scroll {
   display: flex;
   align-items: center;
   white-space: nowrap;
-  animation: milma-ticker-anim 40s linear infinite;
+  animation: milma-ticker-anim 100s linear infinite;
+  width: max-content;
 }
 
 @keyframes milma-ticker-anim {
@@ -1984,19 +2266,34 @@ body {
   100% { transform: translateX(-50%); }
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .milma-ticker-scroll {
+    animation: none !important;
+  }
+}
+
 .milma-ticker-item {
   display: inline-flex;
   align-items: center;
-  font-size: 0.82rem;
-  font-weight: 600;
+  font-size: 1.5rem;
+  font-weight: 800;
   color: var(--milma-text-primary);
-  letter-spacing: 0.3px;
+  letter-spacing: 0.2px;
 }
 
 .milma-ticker-dot {
-  margin: 0 16px;
-  opacity: 0.4;
-  font-size: 1.1em;
+  margin: 0 1.5rem;
+  color: var(--milma-accent-blue);
+  text-shadow: 0 0 8px rgba(125, 211, 252, 0.6);
+  font-size: 1.8rem;
+  line-height: 1;
+  display: inline-block;
+  opacity: 0.85;
+}
+
+[data-theme="light"] .milma-ticker-dot {
+  text-shadow: none;
+  opacity: 0.7;
 }
 
 .milma-ticker-actions {
@@ -2007,15 +2304,10 @@ body {
   background: transparent;
   border: 1px solid var(--milma-card-border);
   color: var(--milma-text-primary);
-  border-radius: 6px;
-  padding: 4px 14px;
-  font-size: 0.78rem;
-  font-weight: 600;
+  border-radius: 0.45rem;
+  padding: 0.35rem 0.9rem;
+  font-size: 1.05rem;
+  font-weight: 700;
   cursor: pointer;
   white-space: nowrap;
-  transition: opacity 0.15s ease;
-}
-
-.milma-ticker-manage-btn:hover {
-  opacity: 0.8;
 }

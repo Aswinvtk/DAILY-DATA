@@ -88,7 +88,8 @@ const Header = ({
 
         {/* Live Time Pill */}
         <div className="milma-pill-live-time">
-          <Clock size={14} className="milma-live-time-icon" />
+          <span className="milma-live-beacon"></span>
+          <Clock size={18} className="milma-live-time-icon" />
           <span>{liveTime}</span>
         </div>
 
@@ -100,7 +101,7 @@ const Header = ({
         >
           <span className="milma-report-date-label">Report date</span>
           <span className="milma-report-date-val">{formatDDMMYYYY(selectedDate)}</span>
-          <Calendar size={15} className="milma-report-date-icon" />
+          <Calendar size={18} className="milma-report-date-icon" />
           <input
             ref={dateInputRef}
             type="date"

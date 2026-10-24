@@ -1,21 +1,59 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Calendar } from 'lucide-react';
 
 // Format numbers according to Indian numbering system (e.g. 2,20,000 or -1,82,64,683)
 // For cards: maxDecimals = 0 (no decimals)
-// For table: maxDecimals = 1 (1 decimal if fractional)
-const formatIN = (val, maxDecimals = 0) => {
+// For table: maxDecimals = 1 (1 decimal)
+export const formatIN = (val, maxDecimals = 0) => {
   if (val === null || val === undefined || isNaN(val)) return '0';
   const num = Number(val);
   const isNegative = num < 0;
   const absNum = Math.abs(num);
 
-  const hasFraction = maxDecimals > 0 && absNum % 1 !== 0;
   const formatted = absNum.toLocaleString('en-IN', {
-    minimumFractionDigits: hasFraction ? maxDecimals : 0,
+    minimumFractionDigits: maxDecimals > 0 ? maxDecimals : 0,
     maximumFractionDigits: maxDecimals
   });
   return isNegative ? `-${formatted}` : formatted;
+};
+
+// Animated Number Component (Counts up from 0 to value in ~1 second with ease-out)
+const AnimatedNumber = ({ value, maxDecimals = 0, duration = 1000 }) => {
+  const targetVal = Number(value) || 0;
+  const [currentVal, setCurrentVal] = useState(0);
+
+  useEffect(() => {
+    // Respect prefers-reduced-motion
+    if (typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      setCurrentVal(targetVal);
+      return;
+    }
+
+    let startTimestamp = null;
+    let animId;
+    const startVal = 0;
+
+    const step = (timestamp) => {
+      if (!startTimestamp) startTimestamp = timestamp;
+      const elapsed = timestamp - startTimestamp;
+      const progress = Math.min(elapsed / duration, 1);
+      // Cubic ease-out
+      const ease = 1 - Math.pow(1 - progress, 3);
+      const val = startVal + (targetVal - startVal) * ease;
+      setCurrentVal(val);
+
+      if (progress < 1) {
+        animId = requestAnimationFrame(step);
+      } else {
+        setCurrentVal(targetVal);
+      }
+    };
+
+    animId = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(animId);
+  }, [targetVal, duration]);
+
+  return <>{formatIN(currentVal, maxDecimals)}</>;
 };
 
 // Format date as DD/MM/YYYY
@@ -47,8 +85,7 @@ const SummarySection = ({ data, selectedDate, onOpenDataEntry }) => {
   const totalOutsidePurchase = outsidePurchases.reduce((sum, item) => sum + (Number(item.quantity) || 0), 0);
   const totalStockOut = stockOuts.reduce((sum, item) => sum + (Number(item.quantity) || 0), 0);
 
-  // Requirement 3: Total milk collected = Wayanad Dairy (WYD) + Manathavady (MDY) ONLY.
-  // Do NOT add outside purchase. Do NOT subtract stock transfers.
+  // Total milk collected = WYD + MDY ONLY
   const totalCollected = wydCol + mdyCol;
 
   // Extract MBS Consolidated Product Groups
@@ -87,7 +124,7 @@ const SummarySection = ({ data, selectedDate, onOpenDataEntry }) => {
     gheeSale === 0
   );
 
-  // Empty-state card per Requirement 1
+  // Empty-state card
   if (isNoData) {
     const formattedDate = formatDDMMYYYY(selectedDate) || selectedDate || 'the selected date';
     return (
@@ -111,18 +148,18 @@ const SummarySection = ({ data, selectedDate, onOpenDataEntry }) => {
     );
   }
 
-  // Row 2 Donut calculation: WYD vs MDY ONLY (do not show outside purchase)
+  // Row 2 Donut calculation: WYD vs MDY ONLY
   const wydMdyTotal = wydCol + mdyCol;
   const wydPct = wydMdyTotal > 0 ? Math.round((wydCol / wydMdyTotal) * 100) : 0;
   const mdyPct = wydMdyTotal > 0 ? (100 - wydPct) : 0;
 
-  // SVG Donut geometry
-  const radius = 54;
-  const circumference = 2 * Math.PI * radius; // ~339.292
+  // SVG Donut geometry (radius 38, viewBox 0 0 100 100)
+  const radius = 38;
+  const circumference = 2 * Math.PI * radius; // ~238.761
   const wydArc = (wydPct / 100) * circumference;
   const mdyArc = (mdyPct / 100) * circumference;
 
-  // Products List for bottom table per Requirement 5
+  // Products List for bottom table
   const productsList = [
     { name: 'Butter', unit: 'Kg', group: butterGroup },
     { name: 'Paneer', unit: 'Kg', group: paneerGroup },
@@ -138,11 +175,11 @@ const SummarySection = ({ data, selectedDate, onOpenDataEntry }) => {
       {/* ROW 1: Four Equal-Width Cards                             */}
       {/* ========================================================= */}
       <div className="milma-kpi-grid-4">
-        {/* Card 1: Total milk collected (Solid Blue Highlight) */}
-        <div className="milma-kpi-card milma-kpi-blue">
+        {/* Card 1: Total milk collected (Royal-Blue Gradient with light sweep) */}
+        <div className="milma-kpi-card milma-kpi-blue milma-stagger-1">
           <div className="milma-kpi-title">Total milk collected</div>
           <div className="milma-kpi-value">
-            {formatIN(totalCollected)}{' '}
+            <AnimatedNumber value={totalCollected} />{' '}
             <span className="milma-kpi-unit">L</span>
           </div>
           <div className="milma-kpi-subtext">
@@ -151,10 +188,10 @@ const SummarySection = ({ data, selectedDate, onOpenDataEntry }) => {
         </div>
 
         {/* Card 2: Outside purchase */}
-        <div className="milma-kpi-card">
+        <div className="milma-kpi-card milma-stagger-2">
           <div className="milma-kpi-title">Outside purchase</div>
-          <div className="milma-kpi-value">
-            {formatIN(totalOutsidePurchase)}{' '}
+          <div className="milma-kpi-value milma-val-neutral">
+            <AnimatedNumber value={totalOutsidePurchase} />{' '}
             <span className="milma-kpi-unit">L</span>
           </div>
           <div className="milma-card-list">
@@ -162,7 +199,9 @@ const SummarySection = ({ data, selectedDate, onOpenDataEntry }) => {
               outsidePurchases.map((p, idx) => (
                 <div key={idx} className="milma-card-list-row">
                   <span className="milma-list-label">{p.sourceUnit || 'Outside Supplier'}</span>
-                  <span className="milma-list-val">{formatIN(p.quantity)} L</span>
+                  <span className="milma-list-val">
+                    <AnimatedNumber value={p.quantity} /> L
+                  </span>
                 </div>
               ))
             ) : (
@@ -171,21 +210,21 @@ const SummarySection = ({ data, selectedDate, onOpenDataEntry }) => {
           </div>
         </div>
 
-        {/* Card 3: Milk sale */}
-        <div className="milma-kpi-card">
+        {/* Card 3: Milk sale (SALE value: gold) */}
+        <div className="milma-kpi-card milma-stagger-3">
           <div className="milma-kpi-title">Milk sale</div>
-          <div className="milma-kpi-value">
-            {formatIN(milkSale)}{' '}
+          <div className="milma-kpi-value milma-val-sale">
+            <AnimatedNumber value={milkSale} />{' '}
             <span className="milma-kpi-unit">L</span>
           </div>
           <div className="milma-kpi-subtext">Today's milk sale</div>
         </div>
 
-        {/* Card 4: Stock out (stock transfers) */}
-        <div className="milma-kpi-card">
+        {/* Card 4: Stock out (transfers) */}
+        <div className="milma-kpi-card milma-stagger-4">
           <div className="milma-kpi-title">Stock out (transfers)</div>
-          <div className="milma-kpi-value">
-            {formatIN(totalStockOut)}{' '}
+          <div className="milma-kpi-value milma-val-neutral">
+            <AnimatedNumber value={totalStockOut} />{' '}
             <span className="milma-kpi-unit">L</span>
           </div>
           <div className="milma-card-list">
@@ -193,7 +232,9 @@ const SummarySection = ({ data, selectedDate, onOpenDataEntry }) => {
               stockOuts.map((s, idx) => (
                 <div key={idx} className="milma-card-list-row">
                   <span className="milma-list-label">{s.destinationUnit || 'Unit not specified'}</span>
-                  <span className="milma-list-val">{formatIN(s.quantity)} L</span>
+                  <span className="milma-list-val">
+                    <AnimatedNumber value={s.quantity} /> L
+                  </span>
                 </div>
               ))
             ) : (
@@ -207,117 +248,116 @@ const SummarySection = ({ data, selectedDate, onOpenDataEntry }) => {
       {/* ROW 2: Four Equal-Width, Equal-Height Cards               */}
       {/* ========================================================= */}
       <div className="milma-row2-grid-4">
-        {/* Card 1: Where the milk came from (Donut Chart) */}
-        <div className="milma-card milma-donut-card">
+        {/* Card 1: Where the milk came from (Pie on LEFT, Legend on RIGHT) */}
+        <div className="milma-card milma-donut-card milma-stagger-5">
           <h2 className="milma-card-title">Where the milk came from</h2>
 
-          <div className="milma-donut-wrapper">
-            <svg
-              className="milma-donut-svg"
-              width="150"
-              height="150"
-              viewBox="0 0 150 150"
-            >
-              {/* Background circle track */}
-              <circle
-                cx="75"
-                cy="75"
-                r={radius}
-                className="milma-donut-bg-track"
-                fill="none"
-                strokeWidth="16"
-              />
+          <div className="milma-donut-layout">
+            {/* Left Column: Donut + Total amount BELOW the pie */}
+            <div className="milma-donut-left">
+              <svg className="milma-donut-svg" viewBox="0 0 100 100">
+                {/* Background track circle */}
+                <circle
+                  cx="50"
+                  cy="50"
+                  r={radius}
+                  className="milma-donut-bg-track"
+                  fill="none"
+                  strokeWidth="12"
+                />
 
-              {/* Rotated segment container starting at 12 o'clock */}
-              <g transform="rotate(-90 75 75)">
-                {/* WYD Segment (Dark Blue) */}
-                {wydMdyTotal > 0 && wydArc > 0 && (
-                  <circle
-                    cx="75"
-                    cy="75"
-                    r={radius}
-                    fill="none"
-                    stroke="#0b57d0"
-                    strokeWidth="16"
-                    strokeDasharray={`${wydArc} ${circumference}`}
-                    strokeDashoffset="0"
-                  />
-                )}
-                {/* MDY Segment (Light Blue) */}
-                {wydMdyTotal > 0 && mdyArc > 0 && (
-                  <circle
-                    cx="75"
-                    cy="75"
-                    r={radius}
-                    fill="none"
-                    stroke="#38bdf8"
-                    strokeWidth="16"
-                    strokeDasharray={`${mdyArc} ${circumference}`}
-                    strokeDashoffset={`-${wydArc}`}
-                  />
-                )}
-              </g>
+                {/* Rotated segment container starting at 12 o'clock */}
+                <g transform="rotate(-90 50 50)">
+                  {/* WYD Segment (Sky Blue #7dd3fc / #38bdf8) */}
+                  {wydMdyTotal > 0 && wydArc > 0 && (
+                    <circle
+                      className="milma-arc-wyd"
+                      cx="50"
+                      cy="50"
+                      r={radius}
+                      fill="none"
+                      strokeWidth="12"
+                      strokeDasharray={`${wydArc} ${circumference}`}
+                      style={{
+                        '--arc-len': `${wydArc}px`,
+                        '--circ': `${circumference}px`
+                      }}
+                    />
+                  )}
+                  {/* MDY Segment (Gold #e9c46a) */}
+                  {wydMdyTotal > 0 && mdyArc > 0 && (
+                    <circle
+                      className="milma-arc-mdy"
+                      cx="50"
+                      cy="50"
+                      r={radius}
+                      fill="none"
+                      strokeWidth="12"
+                      strokeDasharray={`${mdyArc} ${circumference}`}
+                      style={{
+                        '--arc-len': `${mdyArc}px`,
+                        '--circ': `${circumference}px`,
+                        '--offset-start': `${-wydArc}px`
+                      }}
+                    />
+                  )}
+                </g>
+              </svg>
 
-              {/* Center Value and Label */}
-              <text
-                x="75"
-                y="71"
-                textAnchor="middle"
-                className="milma-donut-val"
-              >
-                {formatIN(wydMdyTotal)}
-              </text>
-              <text
-                x="75"
-                y="88"
-                textAnchor="middle"
-                className="milma-donut-lbl"
-              >
-                LITRES
-              </text>
-            </svg>
-          </div>
-
-          {/* Legend */}
-          <div className="milma-donut-legend">
-            <div className="milma-legend-row">
-              <div className="milma-legend-label">
-                <span className="milma-color-dot milma-dot-wyd" />
-                <span>Wayanad Dairy (WYD)</span>
-              </div>
-              <div className="milma-legend-val">
-                {formatIN(wydCol)} L ({wydPct}%)
+              {/* Total amount BELOW the pie */}
+              <div className="milma-donut-total-box">
+                <div className="milma-donut-total-val">
+                  <AnimatedNumber value={wydMdyTotal} /> <span className="milma-donut-total-unit">L</span>
+                </div>
+                <div className="milma-donut-total-lbl">TOTAL</div>
               </div>
             </div>
 
-            <div className="milma-legend-row">
-              <div className="milma-legend-label">
-                <span className="milma-color-dot milma-dot-mdy" />
-                <span>Manathavady (MDY)</span>
+            {/* Right Column: Vertically stacked legend */}
+            <div className="milma-donut-right">
+              {/* 1. WYD Name */}
+              <div className="milma-pie-legend-item">
+                <div className="milma-pie-legend-name">
+                  <span className="milma-pie-sq milma-sq-wyd" />
+                  <span>Wayanad Dairy (WYD)</span>
+                </div>
+                {/* 2. WYD Quantity */}
+                <div className="milma-pie-legend-qty">
+                  <AnimatedNumber value={wydCol} /> L · {wydPct}%
+                </div>
               </div>
-              <div className="milma-legend-val">
-                {formatIN(mdyCol)} L ({mdyPct}%)
+
+              {/* 3. MDY Name */}
+              <div className="milma-pie-legend-item">
+                <div className="milma-pie-legend-name">
+                  <span className="milma-pie-sq milma-sq-mdy" />
+                  <span>Manathavady (MDY)</span>
+                </div>
+                {/* 4. MDY Quantity */}
+                <div className="milma-pie-legend-qty">
+                  <AnimatedNumber value={mdyCol} /> L · {mdyPct}%
+                </div>
               </div>
             </div>
           </div>
         </div>
 
         {/* Card 2: Milk details */}
-        <div className="milma-card milma-detail-card">
-          <h2 className="milma-card-title">Milk details</h2>
+        <div className="milma-card milma-detail-card milma-stagger-6">
+          <h2 className="milma-card-title milma-title-underline milma-title-underline-milk">Milk details</h2>
 
           <div className="milma-detail-metric">
             <span className="milma-detail-metric-label">Production</span>
-            <div className="milma-metric-huge">
-              {formatIN(milkProd)}{' '}
+            <div className="milma-metric-huge milma-val-prod">
+              <AnimatedNumber value={milkProd} />{' '}
               <span className="milma-metric-unit">L</span>
             </div>
           </div>
 
           <div className="milma-detail-metric">
             <span className="milma-detail-metric-label">Sale</span>
-            <div className="milma-metric-huge">
-              {formatIN(milkSale)}{' '}
+            <div className="milma-metric-huge milma-val-sale">
+              <AnimatedNumber value={milkSale} />{' '}
               <span className="milma-metric-unit">L</span>
             </div>
           </div>
@@ -325,39 +365,35 @@ const SummarySection = ({ data, selectedDate, onOpenDataEntry }) => {
           <div className="milma-detail-bottom">
             <div className="milma-balance-item">
               <span className="milma-balance-lbl">Opening</span>
-              <span className={`milma-balance-num ${Number(milkGroup.totalOB) < 0 ? 'milma-val-negative' : ''}`}>
-                {formatIN(milkGroup.totalOB)}
+              <span className={`milma-balance-num ${Number(milkGroup.totalOB) < 0 ? 'milma-val-negative' : 'milma-val-neutral'}`}>
+                <AnimatedNumber value={milkGroup.totalOB} />
               </span>
             </div>
             <div className="milma-balance-item text-end">
               <span className="milma-balance-lbl">Closing</span>
-              <span className={`milma-balance-num ${Number(milkGroup.totalCB) < 0 ? 'milma-val-negative' : ''}`}>
-                {formatIN(milkGroup.totalCB)}
+              <span className={`milma-balance-num ${Number(milkGroup.totalCB) < 0 ? 'milma-val-negative' : 'milma-val-neutral'}`}>
+                <AnimatedNumber value={milkGroup.totalCB} />
               </span>
             </div>
           </div>
-
-          {Number(milkGroup.totalCB) < 0 && (
-            <div className="milma-badge-negative mt-2">Negative stock</div>
-          )}
         </div>
 
         {/* Card 3: Curd details */}
-        <div className="milma-card milma-detail-card">
-          <h2 className="milma-card-title">Curd details</h2>
+        <div className="milma-card milma-detail-card milma-stagger-7">
+          <h2 className="milma-card-title milma-title-underline milma-title-underline-curd">Curd details</h2>
 
           <div className="milma-detail-metric">
             <span className="milma-detail-metric-label">Production</span>
-            <div className="milma-metric-huge">
-              {formatIN(curdProd)}{' '}
+            <div className="milma-metric-huge milma-val-prod">
+              <AnimatedNumber value={curdProd} />{' '}
               <span className="milma-metric-unit">L/Kg</span>
             </div>
           </div>
 
           <div className="milma-detail-metric">
             <span className="milma-detail-metric-label">Sale</span>
-            <div className="milma-metric-huge">
-              {formatIN(curdSale)}{' '}
+            <div className="milma-metric-huge milma-val-sale">
+              <AnimatedNumber value={curdSale} />{' '}
               <span className="milma-metric-unit">L/Kg</span>
             </div>
           </div>
@@ -365,39 +401,35 @@ const SummarySection = ({ data, selectedDate, onOpenDataEntry }) => {
           <div className="milma-detail-bottom">
             <div className="milma-balance-item">
               <span className="milma-balance-lbl">Opening</span>
-              <span className={`milma-balance-num ${Number(curdGroup.totalOB) < 0 ? 'milma-val-negative' : ''}`}>
-                {formatIN(curdGroup.totalOB)}
+              <span className={`milma-balance-num ${Number(curdGroup.totalOB) < 0 ? 'milma-val-negative' : 'milma-val-neutral'}`}>
+                <AnimatedNumber value={curdGroup.totalOB} />
               </span>
             </div>
             <div className="milma-balance-item text-end">
               <span className="milma-balance-lbl">Closing</span>
-              <span className={`milma-balance-num ${Number(curdGroup.totalCB) < 0 ? 'milma-val-negative' : ''}`}>
-                {formatIN(curdGroup.totalCB)}
+              <span className={`milma-balance-num ${Number(curdGroup.totalCB) < 0 ? 'milma-val-negative' : 'milma-val-neutral'}`}>
+                <AnimatedNumber value={curdGroup.totalCB} />
               </span>
             </div>
           </div>
-
-          {Number(curdGroup.totalCB) < 0 && (
-            <div className="milma-badge-negative mt-2">Negative stock</div>
-          )}
         </div>
 
         {/* Card 4: Ghee details */}
-        <div className="milma-card milma-detail-card">
-          <h2 className="milma-card-title">Ghee details</h2>
+        <div className="milma-card milma-detail-card milma-stagger-8">
+          <h2 className="milma-card-title milma-title-underline milma-title-underline-ghee">Ghee details</h2>
 
           <div className="milma-detail-metric">
             <span className="milma-detail-metric-label">Production</span>
-            <div className="milma-metric-huge">
-              {formatIN(gheeProd)}{' '}
+            <div className="milma-metric-huge milma-val-prod">
+              <AnimatedNumber value={gheeProd} />{' '}
               <span className="milma-metric-unit">L</span>
             </div>
           </div>
 
           <div className="milma-detail-metric">
             <span className="milma-detail-metric-label">Sale</span>
-            <div className="milma-metric-huge">
-              {formatIN(gheeSale)}{' '}
+            <div className="milma-metric-huge milma-val-sale">
+              <AnimatedNumber value={gheeSale} />{' '}
               <span className="milma-metric-unit">L</span>
             </div>
           </div>
@@ -405,28 +437,24 @@ const SummarySection = ({ data, selectedDate, onOpenDataEntry }) => {
           <div className="milma-detail-bottom">
             <div className="milma-balance-item">
               <span className="milma-balance-lbl">Opening</span>
-              <span className={`milma-balance-num ${Number(gheeGroup.totalOB) < 0 ? 'milma-val-negative' : ''}`}>
-                {formatIN(gheeGroup.totalOB)}
+              <span className={`milma-balance-num ${Number(gheeGroup.totalOB) < 0 ? 'milma-val-negative' : 'milma-val-neutral'}`}>
+                <AnimatedNumber value={gheeGroup.totalOB} />
               </span>
             </div>
             <div className="milma-balance-item text-end">
               <span className="milma-balance-lbl">Closing</span>
-              <span className={`milma-balance-num ${Number(gheeGroup.totalCB) < 0 ? 'milma-val-negative' : ''}`}>
-                {formatIN(gheeGroup.totalCB)}
+              <span className={`milma-balance-num ${Number(gheeGroup.totalCB) < 0 ? 'milma-val-negative' : 'milma-val-neutral'}`}>
+                <AnimatedNumber value={gheeGroup.totalCB} />
               </span>
             </div>
           </div>
-
-          {Number(gheeGroup.totalCB) < 0 && (
-            <div className="milma-badge-negative mt-2">Negative stock</div>
-          )}
         </div>
       </div>
 
       {/* ========================================================= */}
       {/* ROW 3: Product-wise Breakdown (Full-Width Table)          */}
       {/* ========================================================= */}
-      <div className="milma-card milma-card-table">
+      <div className="milma-card milma-card-table milma-stagger-9">
         <h2 className="milma-card-title">Product-wise breakdown</h2>
 
         <div className="milma-table-container">
@@ -442,7 +470,7 @@ const SummarySection = ({ data, selectedDate, onOpenDataEntry }) => {
               </tr>
             </thead>
             <tbody>
-              {productsList.map((item) => {
+              {productsList.map((item, idx) => {
                 const ob = Number(item.group?.totalOB || 0);
                 const prod = Number(item.group?.totalNetProd || 0);
                 const sale = Number(item.group?.totalInvQty || 0);
@@ -450,15 +478,23 @@ const SummarySection = ({ data, selectedDate, onOpenDataEntry }) => {
                 const isNoActivity = ob === 0 && prod === 0 && sale === 0 && cb === 0;
 
                 return (
-                  <tr key={item.name}>
+                  <tr
+                    key={item.name}
+                    className="milma-table-row-fade"
+                    style={{ animationDelay: `${0.55 + idx * 0.06}s` }}
+                  >
                     <td className="milma-td-name">{item.name}</td>
-                    <td className={`milma-td-num ${ob < 0 ? 'milma-val-negative' : ''}`}>
-                      {formatIN(ob, 1)}
+                    <td className={`milma-td-num ${ob < 0 ? 'milma-val-negative' : 'milma-val-neutral'}`}>
+                      <AnimatedNumber value={ob} maxDecimals={1} />
                     </td>
-                    <td className="milma-td-num">{formatIN(prod, 1)}</td>
-                    <td className="milma-td-num">{formatIN(sale, 1)}</td>
-                    <td className={`milma-td-num ${cb < 0 ? 'milma-val-negative' : ''}`}>
-                      {formatIN(cb, 1)}
+                    <td className="milma-td-num milma-val-prod">
+                      <AnimatedNumber value={prod} maxDecimals={1} />
+                    </td>
+                    <td className="milma-td-num milma-val-sale">
+                      <AnimatedNumber value={sale} maxDecimals={1} />
+                    </td>
+                    <td className={`milma-td-num ${cb < 0 ? 'milma-val-negative' : 'milma-val-neutral'}`}>
+                      <AnimatedNumber value={cb} maxDecimals={1} />
                     </td>
                     <td className="milma-td-right">
                       {cb < 0 ? (

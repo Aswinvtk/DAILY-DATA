@@ -17,7 +17,7 @@ function App() {
     return localStorage.getItem('mpod_selected_date') || '2026-10-22';
   });
   const [operationsData, setOperationsData] = useState(null);
-  const [theme, setTheme] = useState(() => localStorage.getItem('mpod_theme') || 'light');
+  const [theme, setTheme] = useState(() => localStorage.getItem('mpod_theme') || 'dark');
   const [refreshCountdown, setRefreshCountdown] = useState(30);
   const [loading, setLoading] = useState(true);
 
