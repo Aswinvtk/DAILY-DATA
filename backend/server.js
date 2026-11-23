@@ -462,6 +462,25 @@ app.delete('/api/alerts/:id', async (req, res) => {
   }
 });
 
+// Root & Health endpoints so visiting http://localhost:5050 shows a clear message or redirects to frontend
+app.get('/', (req, res) => {
+  res.send(`
+    <html>
+      <head><title>Milma Daily Operations API</title></head>
+      <body style="font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 90vh; background: #0f172a; color: #f8fafc;">
+        <h2>Milma Daily Operations Backend API</h2>
+        <p>This port (5050) is the backend API service.</p>
+        <p>To view the full interactive dashboard, open:</p>
+        <a href="http://localhost:5173" style="color: #38bdf8; font-size: 1.25rem; font-weight: bold; text-decoration: underline;">👉 Open Frontend Application (http://localhost:5173)</a>
+      </body>
+    </html>
+  `);
+});
+
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', time: new Date() });
+});
+
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on port ${PORT} (Listening on 0.0.0.0)`);

@@ -17,12 +17,21 @@ function App() {
     return localStorage.getItem('mpod_selected_date') || '2026-10-22';
   });
   const [operationsData, setOperationsData] = useState(null);
+  const [lastUpdated, setLastUpdated] = useState('');
   const [theme, setTheme] = useState(() => localStorage.getItem('mpod_theme') || 'dark');
   const [refreshCountdown, setRefreshCountdown] = useState(30);
   const [loading, setLoading] = useState(true);
 
   // V2 Navigation View state: 'dashboard' or 'report_entry'
   const [view, setView] = useState('dashboard');
+
+  const handleBackToDashboard = async (dateToLoad) => {
+    const targetDate = dateToLoad || selectedDate;
+    setSelectedDate(targetDate);
+    localStorage.setItem('mpod_selected_date', targetDate);
+    setView('dashboard');
+    await fetchData(targetDate);
+  };
 
   // Sync selectedDate to localStorage
   const handleDateChange = (newDate) => {
