@@ -73,6 +73,7 @@ const SummarySection = ({ data, selectedDate, onOpenDataEntry }) => {
   const colDetails = data?.milkCollectionDetails || {};
   const wydCol = Number(colDetails.wyd || data?.collectionData?.wyd || 0);
   const mdyCol = Number(colDetails.mdy || data?.collectionData?.mvd || 0);
+  const milkClosingStock = Number(data?.milkClosingStock || 0);
 
   const outsidePurchases = Array.isArray(colDetails.outsidePurchases) && colDetails.outsidePurchases.length > 0
     ? colDetails.outsidePurchases.filter(p => (Number(p.quantity) || 0) > 0 || (p.sourceUnit && p.sourceUnit.trim() !== ''))
@@ -148,16 +149,10 @@ const SummarySection = ({ data, selectedDate, onOpenDataEntry }) => {
     );
   }
 
-  // Row 2 Donut calculation: WYD vs MDY ONLY
+  // Row 2 Progress bar calculation: WYD vs MDY ONLY
   const wydMdyTotal = wydCol + mdyCol;
   const wydPct = wydMdyTotal > 0 ? Math.round((wydCol / wydMdyTotal) * 100) : 0;
   const mdyPct = wydMdyTotal > 0 ? (100 - wydPct) : 0;
-
-  // SVG Donut geometry (radius 38, viewBox 0 0 100 100)
-  const radius = 38;
-  const circumference = 2 * Math.PI * radius; // ~238.761
-  const wydArc = (wydPct / 100) * circumference;
-  const mdyArc = (mdyPct / 100) * circumference;
 
   // Products List for bottom table
   const productsList = [
@@ -210,14 +205,14 @@ const SummarySection = ({ data, selectedDate, onOpenDataEntry }) => {
           </div>
         </div>
 
-        {/* Card 3: Milk sale (SALE value: gold) */}
+        {/* Card 3: Milk Closing Stock (Ltr) (SALE value: gold) */}
         <div className="milma-kpi-card milma-stagger-3">
-          <div className="milma-kpi-title">Milk sale</div>
+          <div className="milma-kpi-title">Milk Closing Stock (Ltr)</div>
           <div className="milma-kpi-value milma-val-sale">
-            <AnimatedNumber value={milkSale} />{' '}
+            <AnimatedNumber value={milkClosingStock} />{' '}
             <span className="milma-kpi-unit">L</span>
           </div>
-          <div className="milma-kpi-subtext">Today's milk sale</div>
+          <div className="milma-kpi-subtext">Today's OB</div>
         </div>
 
         {/* Card 4: Stock out (transfers) */}
@@ -248,95 +243,54 @@ const SummarySection = ({ data, selectedDate, onOpenDataEntry }) => {
       {/* ROW 2: Four Equal-Width, Equal-Height Cards               */}
       {/* ========================================================= */}
       <div className="milma-row2-grid-4">
-        {/* Card 1: Where the milk came from (Pie on LEFT, Legend on RIGHT) */}
-        <div className="milma-card milma-donut-card milma-stagger-5">
+        {/* Card 1: Where the milk came from (Clean horizontal bar layout) */}
+        <div className="milma-card milma-stagger-5 milma-milk-source-card">
           <h2 className="milma-card-title">Where the milk came from</h2>
 
-          <div className="milma-donut-layout">
-            {/* Left Column: Donut + Total amount BELOW the pie */}
-            <div className="milma-donut-left">
-              <svg className="milma-donut-svg" viewBox="0 0 100 100">
-                {/* Background track circle */}
-                <circle
-                  cx="50"
-                  cy="50"
-                  r={radius}
-                  className="milma-donut-bg-track"
-                  fill="none"
-                  strokeWidth="12"
-                />
+          <div className="milma-source-total-wrap">
+            <span className="milma-source-total-num">
+              <AnimatedNumber value={wydMdyTotal} />
+            </span>
+            <span className="milma-source-total-tag">L TOTAL</span>
+          </div>
 
-                {/* Rotated segment container starting at 12 o'clock */}
-                <g transform="rotate(-90 50 50)">
-                  {/* WYD Segment (Sky Blue #7dd3fc / #38bdf8) */}
-                  {wydMdyTotal > 0 && wydArc > 0 && (
-                    <circle
-                      className="milma-arc-wyd"
-                      cx="50"
-                      cy="50"
-                      r={radius}
-                      fill="none"
-                      strokeWidth="12"
-                      strokeDasharray={`${wydArc} ${circumference}`}
-                      style={{
-                        '--arc-len': `${wydArc}px`,
-                        '--circ': `${circumference}px`
-                      }}
-                    />
-                  )}
-                  {/* MDY Segment (Gold #e9c46a) */}
-                  {wydMdyTotal > 0 && mdyArc > 0 && (
-                    <circle
-                      className="milma-arc-mdy"
-                      cx="50"
-                      cy="50"
-                      r={radius}
-                      fill="none"
-                      strokeWidth="12"
-                      strokeDasharray={`${mdyArc} ${circumference}`}
-                      style={{
-                        '--arc-len': `${mdyArc}px`,
-                        '--circ': `${circumference}px`,
-                        '--offset-start': `${-wydArc}px`
-                      }}
-                    />
-                  )}
-                </g>
-              </svg>
+          <div className="milma-source-bar-track">
+            <div
+              className="milma-source-bar-fill milma-source-bar-wyd"
+              style={{ width: `${wydPct}%` }}
+              title={`Wayanad Dairy (WYD): ${wydPct}%`}
+            />
+            <div
+              className="milma-source-bar-fill milma-source-bar-mdy"
+              style={{ width: `${mdyPct}%` }}
+              title={`Manathavady (MDY): ${mdyPct}%`}
+            />
+          </div>
 
-              {/* Total amount BELOW the pie */}
-              <div className="milma-donut-total-box">
-                <div className="milma-donut-total-val">
-                  <AnimatedNumber value={wydMdyTotal} /> <span className="milma-donut-total-unit">L</span>
+          <div className="milma-source-rows">
+            <div className="milma-source-row">
+              <div className="milma-source-label">
+                <span className="milma-pie-sq milma-sq-wyd" />
+                <span>Wayanad Dairy (WYD)</span>
+              </div>
+              <div className="milma-source-val-wrap">
+                <div className="milma-source-qty">
+                  <AnimatedNumber value={wydCol} /> L
                 </div>
-                <div className="milma-donut-total-lbl">TOTAL</div>
+                <div className="milma-source-pct">{wydPct}%</div>
               </div>
             </div>
 
-            {/* Right Column: Vertically stacked legend */}
-            <div className="milma-donut-right">
-              {/* 1. WYD Name */}
-              <div className="milma-pie-legend-item">
-                <div className="milma-pie-legend-name">
-                  <span className="milma-pie-sq milma-sq-wyd" />
-                  <span>Wayanad Dairy (WYD)</span>
-                </div>
-                {/* 2. WYD Quantity */}
-                <div className="milma-pie-legend-qty">
-                  <AnimatedNumber value={wydCol} /> L · {wydPct}%
-                </div>
+            <div className="milma-source-row">
+              <div className="milma-source-label">
+                <span className="milma-pie-sq milma-sq-mdy" />
+                <span>Manathavady (MDY)</span>
               </div>
-
-              {/* 3. MDY Name */}
-              <div className="milma-pie-legend-item">
-                <div className="milma-pie-legend-name">
-                  <span className="milma-pie-sq milma-sq-mdy" />
-                  <span>Manathavady (MDY)</span>
+              <div className="milma-source-val-wrap">
+                <div className="milma-source-qty">
+                  <AnimatedNumber value={mdyCol} /> L
                 </div>
-                {/* 4. MDY Quantity */}
-                <div className="milma-pie-legend-qty">
-                  <AnimatedNumber value={mdyCol} /> L · {mdyPct}%
-                </div>
+                <div className="milma-source-pct">{mdyPct}%</div>
               </div>
             </div>
           </div>
